@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>見出しピッカー v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#faf9f6;
+  --border:#e8e6e0;--border2:#d4d1c8;
+  --text:#18170f;--muted:#888680;--hint:#bbb9b2;
+  --accent:#2563eb;--r:10px;--rlg:16px;
+}
+body{font-family:'DM Sans','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.25rem;height:52px;display:flex;align-items:center;gap:.75rem;position:sticky;top:0;z-index:20;flex-wrap:wrap;}
+.logo{font-size:13px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;}
+.div{width:1px;height:18px;background:var(--border);flex-shrink:0;}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tlabel{font-size:11px;color:var(--muted);white-space:nowrap;font-weight:500;}
+.text-input{font-family:'Noto Sans JP',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);width:200px;outline:none;transition:border-color .15s;}
+.text-input:focus{border-color:var(--accent);}
+.swatch{width:17px;height:17px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;flex-shrink:0;}
+.swatch:hover{transform:scale(1.2);}
+.swatch.on{border-color:var(--text);}
+input[type="color"]{width:24px;height:24px;border:1px solid var(--border);border-radius:50%;cursor:pointer;padding:2px;background:none;outline:none;}
+.wtog{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .1s;}
+.wtog.on{background:var(--text);color:#fff;border-color:var(--text);}
+.slider-row{display:flex;align-items:center;gap:5px;}
+.slider-row input[type=range]{width:72px;accent-color:var(--accent);}
+.slider-val{font-size:11px;font-weight:500;min-width:28px;}
+
+/* COLOR MODE TABS */
+.mode-tabs{display:flex;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.mode-tab{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;white-space:nowrap;}
+.mode-tab.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 300px;min-height:calc(100vh - 52px);}
+.main{padding:1.25rem;overflow-y:auto;}
+.section-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--hint);margin-bottom:8px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:14px 12px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:8px;transition:border-color .12s,box-shadow .12s;min-height:76px;}
+.card:hover{border-color:var(--border2);box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.card.sel{border:2px solid var(--text);box-shadow:0 2px 14px rgba(0,0,0,.08);}
+.card-preview{display:flex;align-items:center;min-height:34px;width:100%;overflow:hidden;}
+.card-name{font-size:10px;color:var(--muted);font-weight:500;}
+
+/* ZOOM BUTTON */
+.card{position:relative;}
+.zoom-btn{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:6px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s;z-index:2;padding:0;}
+.card:hover .zoom-btn{opacity:1;}
+.zoom-icon{width:11px;height:11px;stroke:var(--muted);stroke-width:2;fill:none;}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.overlay-card{background:var(--surface);border-radius:20px;padding:2.5rem 4rem 2rem;min-width:320px;max-width:600px;width:90%;display:flex;flex-direction:column;align-items:center;gap:1.5rem;position:relative;}
+.overlay-close{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);line-height:1;}
+.overlay-close:hover{background:var(--bg);}
+.overlay-preview{display:flex;align-items:center;justify-content:center;min-height:80px;width:100%;}
+.overlay-name{font-size:12px;color:var(--muted);font-weight:500;}
+.overlay-actions{display:flex;gap:8px;width:100%;}
+.overlay-actions button{flex:1;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:9px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:all .12s;}
+.overlay-actions button:hover{background:var(--bg);}
+.overlay-actions button.primary{background:var(--text);color:#fff;border-color:var(--text);}
+.overlay-actions button.primary:hover{background:#333;}
+.overlay-actions button.success{color:#0F6E56;border-color:#1D9E75;}
+
+/* NAV BUTTONS */
+.nav-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;position:absolute;top:50%;transform:translateY(-50%);}
+.nav-btn:hover{background:var(--bg);border-color:var(--border2);color:var(--text);}
+.nav-prev{left:12px;}
+.nav-next{right:12px;}
+.overlay-style-count{font-size:11px;color:var(--muted);font-weight:500;position:absolute;top:14px;left:16px;}
+
+/* CONTEXT MENU */
+.ctx-menu{position:fixed;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;min-width:140px;}
+.ctx-item{padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;}
+.ctx-item:hover{background:var(--bg);}
+.ctx-item.danger{color:#dc2626;}
+.ctx-item.danger:hover{background:#fef2f2;}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-left:1px solid var(--border);padding:1.25rem;display:flex;flex-direction:column;gap:1rem;overflow-y:auto;}
+.preview-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rlg);padding:1.75rem 1rem;display:flex;align-items:center;justify-content:center;min-height:86px;}
+
+/* GRADIENT PANEL */
+.grad-panel{display:flex;flex-direction:column;gap:10px;}
+.grad-presets{display:flex;flex-wrap:wrap;gap:5px;}
+.grad-preset{width:32px;height:32px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .1s;flex-shrink:0;}
+.grad-preset:hover{transform:scale(1.08);}
+.grad-preset.on{border-color:var(--text);}
+.color-pair{display:flex;align-items:center;gap:8px;}
+.color-pair label{font-size:11px;color:var(--muted);font-weight:500;min-width:20px;}
+.color-pair input[type=color]{width:30px;height:30px;border-radius:8px;padding:2px;}
+
+/* DIRECTION GRID */
+.dir-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;}
+.dir-btn{aspect-ratio:1;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .1s;color:var(--muted);}
+.dir-btn:hover{background:var(--bg);}
+.dir-btn.on{background:var(--text);color:#fff;border-color:var(--text);}
+
+.actions{display:flex;flex-direction:column;gap:5px;margin-top:auto;}
+.action-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:9px 14px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:all .12s;text-align:center;}
+.action-btn:hover{background:var(--bg);border-color:var(--border2);}
+.action-btn.primary{background:var(--text);color:#fff;border-color:var(--text);}
+.action-btn.primary:hover{background:#333;}
+.action-btn.success{color:#0F6E56;border-color:#1D9E75;background:transparent;}
+
+/* PAGE NAV */
+.page-nav{display:flex;align-items:center;gap:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px;flex-shrink:0;}
+.page-tab{font-size:12px;font-weight:500;padding:4px 12px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;white-space:nowrap;}
+.page-tab.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+/* BG PICKER */
+.bg-layout{display:grid;grid-template-columns:1fr 300px;min-height:calc(100vh - 96px);}
+.bg-main{padding:1.25rem;overflow-y:auto;}
+.bg-sidebar-wrap{position:sticky;top:96px;height:calc(100vh - 96px);overflow-y:auto;}
+.bg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);cursor:pointer;overflow:hidden;transition:border-color .12s,box-shadow .12s;display:flex;flex-direction:column;}
+.bg-card:hover{border-color:var(--border2);box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.bg-card.sel{border:2px solid var(--text);}
+.bg-preview-area{height:90px;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;padding:12px;}
+.bg-card-name{font-size:10px;color:var(--muted);font-weight:500;padding:8px 10px 10px;}
+.bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+
+.width-toggle{display:flex;gap:3px;}
+.width-btn{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .1s;}
+.width-btn.on{background:var(--text);color:#fff;border-color:var(--text);}
+
+/* BG HEADER TOOLBAR */
+.bg-header{display:none;align-items:center;gap:8px;flex-wrap:wrap;}
+.bg-header.show{display:flex;}
+.mid-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mid-header.hide{display:none;}
+</style>
+</head>
+<body>
+<!-- ページ共通ヘッダー -->
+<header style="flex-direction:column;height:auto;padding:0;">
+  <div style="display:flex;align-items:center;gap:.75rem;padding:0 1.25rem;height:44px;border-bottom:1px solid var(--border);width:100%;">
+    <div class="logo"><div class="logo-dot"></div>デザインピッカー</div>
+    <div class="div"></div>
+    <div class="page-nav">
+      <button class="page-tab on" data-page="midashi">見出しピッカー</button>
+      <button class="page-tab" data-page="bg">背景ピッカー</button>
+    </div>
+  </div>
+  <div class="mid-header" id="midashi-toolbar" style="padding:0 1.25rem;height:44px;width:100%;gap:.75rem;">
+    <div class="toolbar">
+      <span class="tlabel">テキスト</span>
+      <input class="text-input" type="text" id="txt" value="美しい見出しのデザイン"/>
+    </div>
+    <div class="div"></div>
+    <div class="toolbar">
+      <span class="tlabel">サイズ</span>
+      <div class="slider-row"><input type="range" min="12" max="28" step="1" value="15" id="fs"/><span class="slider-val" id="fs-val">15px</span></div>
+    </div>
+    <div class="div"></div>
+    <div class="toolbar">
+      <span class="tlabel">太さ</span>
+      <div style="display:flex;gap:3px;" id="weight-toggle">
+        <button class="wtog" data-w="400">細</button>
+        <button class="wtog" data-w="500">中</button>
+        <button class="wtog on" data-w="700">太</button>
+        <button class="wtog" data-w="900">極</button>
+      </div>
+    </div>
+  </div>
+  <div class="mid-header hide" id="bg-toolbar" style="padding:0 1.25rem;height:44px;width:100%;gap:.75rem;">
+    <div class="toolbar">
+      <span class="tlabel">カラー</span>
+      <div id="bg-swatches" style="display:flex;gap:5px;"></div>
+      <input type="color" id="bg-color" value="#2563eb"/>
+    </div>
+    <div class="div"></div>
+    <div class="toolbar">
+      <span class="tlabel">書き出し幅</span>
+      <div class="width-toggle" id="width-toggle">
+        <button class="width-btn" data-w="375">375</button>
+        <button class="width-btn" data-w="768">768</button>
+        <button class="width-btn on" data-w="1440">1440</button>
+        <button class="width-btn" data-w="1920">1920</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <button class="overlay-close" id="overlay-close">✕</button>
+    <div class="overlay-style-count" id="overlay-count"></div>
+    <button class="nav-btn nav-prev" id="nav-prev" title="前のスタイル">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 4 6 9 11 14"/></svg>
+    </button>
+    <div class="overlay-preview" id="overlay-preview"></div>
+    <button class="nav-btn nav-next" id="nav-next" title="次のスタイル">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 4 12 9 7 14"/></svg>
+    </button>
+    <div class="overlay-name" id="overlay-name"></div>
+    <div class="overlay-actions">
+      <button class="primary" id="overlay-svg">SVGをダウンロード</button>
+      <button id="overlay-css">CSSをコピー</button>
+      <button id="overlay-html">HTMLをコピー</button>
+    </div>
+  </div>
+</div>
+
+<div class="ctx-menu" id="ctx-menu" style="display:none;">
+  <div class="ctx-item danger" id="ctx-delete">スウォッチから削除</div>
+</div>
+
+<div class="layout">
+  <div class="main">
+    <div class="section-label">スタイルを選ぶ — <span id="style-count"></span>種類</div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="sidebar">
+    <div>
+      <div style="margin-bottom:6px;"><div class="section-label" style="margin-bottom:0;">プレビュー</div></div>
+      <div style="position:relative;">
+        <div class="preview-box" id="preview" style="cursor:pointer;" title="クリックで拡大"></div>
+        <button id="preview-zoom" title="拡大プレビュー" style="position:absolute;bottom:4px;right:8px;width:28px;height:28px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .12s;">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="5.5" cy="5.5" r="3.8"/><line x1="8.5" y1="8.5" x2="12" y2="12"/><line x1="3.8" y1="5.5" x2="7.2" y2="5.5"/><line x1="5.5" y1="3.8" x2="5.5" y2="7.2"/></svg>
+        </button>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text);margin-top:8px;" id="style-name"></div>
+    </div>
+
+    <div>
+      <div class="section-label" style="margin-bottom:6px;">カラーモード</div>
+      <div class="mode-tabs">
+        <button class="mode-tab on" data-mode="solid">単色</button>
+        <button class="mode-tab" data-mode="grad2">2色グラデ</button>
+        <button class="mode-tab" data-mode="rainbow">虹</button>
+        <button class="mode-tab" data-mode="mesh">メッシュ</button>
+      </div>
+    </div>
+
+    <!-- 単色パネル -->
+    <div id="panel-solid">
+      <div class="section-label" style="margin-bottom:6px;">カラー</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <div id="swatches" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+        <input type="color" id="custom-color" value="#2563eb"/>
+        <button id="save-color" title="現在の色をスウォッチに保存" style="width:24px;height:24px;border-radius:50%;border:1.5px dashed var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);line-height:1;flex-shrink:0;">+</button>
+      </div>
+    </div>
+
+    <!-- グラデパネル -->
+    <div id="panel-grad" style="display:none;">
+      <div class="grad-panel">
+        <div>
+          <div class="section-label" style="margin-bottom:6px;">プリセット</div>
+          <div class="grad-presets" id="grad-presets"></div>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:6px;">カスタム</div>
+          <div class="color-pair">
+            <label>色1</label>
+            <input type="color" id="gc1" value="#2563eb"/>
+            <label style="margin-left:4px;">色2</label>
+            <input type="color" id="gc2" value="#a855f7"/>
+          </div>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:6px;">方向</div>
+          <div class="dir-grid" id="dir-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 虹パネル -->
+    <div id="panel-rainbow" style="display:none;">
+      <div class="grad-panel">
+        <div>
+          <div class="section-label" style="margin-bottom:6px;">虹グラデ パターン</div>
+          <div class="grad-presets" id="rainbow-presets"></div>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:6px;">方向</div>
+          <div class="dir-grid" id="rainbow-dir-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- メッシュパネル -->
+    <div id="panel-mesh" style="display:none;">
+      <div class="section-label" style="margin-bottom:6px;">にじみ / メッシュ</div>
+      <div class="grad-presets" id="mesh-presets"></div>
+    </div>
+
+    <div class="actions">
+      <button class="action-btn primary" id="btn-svg">SVGをダウンロード</button>
+      <button class="action-btn" id="btn-css">CSSをコピー</button>
+      <button class="action-btn" id="btn-html">HTMLをコピー</button>
+    </div>
+  </div>
+</div>
+
+<!-- 背景ピッカーページ -->
+<div id="bg-page" style="display:none;">
+  <div class="bg-layout">
+    <div class="bg-main">
+      <div class="section-label">シェイプを選ぶ — <span id="bg-style-count"></span>種類</div>
+      <div class="bg-grid" id="bg-grid"></div>
+    </div>
+    <div class="bg-sidebar-wrap">
+    <div class="sidebar">
+      <div>
+        <div style="margin-bottom:6px;"><div class="section-label" style="margin-bottom:0;">プレビュー</div></div>
+        <div class="preview-box" id="bg-preview" style="padding:12px 16px;overflow:hidden;min-height:100px;"></div>
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-top:8px;" id="bg-style-name"></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label" style="margin-bottom:6px;">長方形の高さ</div>
+        <div class="ctrl-row" style="display:flex;align-items:center;gap:8px;">
+          <input type="range" min="40" max="400" step="4" value="120" id="bg-height" style="flex:1;accent-color:var(--accent);"/>
+          <input type="number" min="40" max="400" value="120" id="bg-height-num" style="width:52px;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:3px 5px;text-align:right;background:var(--bg);color:var(--text);"/>
+          <span style="font-size:11px;color:var(--muted);">px</span>
+        </div>
+      </div>
+      <div class="sidebar-section" id="bg-tri-section" style="display:none;">
+        <div class="section-label" style="margin-bottom:6px;">三角の高さ</div>
+        <div class="ctrl-row" style="display:flex;align-items:center;gap:8px;">
+          <input type="range" min="20" max="200" step="4" value="60" id="bg-tri-height" style="flex:1;accent-color:var(--accent);"/>
+          <input type="number" min="20" max="200" value="60" id="bg-tri-height-num" style="width:52px;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:3px 5px;text-align:right;background:var(--bg);color:var(--text);"/>
+          <span style="font-size:11px;color:var(--muted);">px</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label" style="margin-bottom:6px;">カラーモード</div>
+        <div class="mode-tabs" style="flex-wrap:wrap;">
+          <button class="mode-tab on" data-bgmode="solid">単色</button>
+          <button class="mode-tab" data-bgmode="grad2">2色グラデ</button>
+          <button class="mode-tab" data-bgmode="rainbow">虹</button>
+          <button class="mode-tab" data-bgmode="mesh">メッシュ</button>
+          <button class="mode-tab" data-bgmode="pattern">パターン</button>
+        </div>
+      </div>
+      <div id="bg-panel-solid">
+        <div class="section-label" style="margin-bottom:6px;margin-top:8px;">カラー</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <div id="bg-swatches2" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+          <input type="color" id="bg-color2" value="#2563eb"/>
+          <button id="bg-save-color" title="現在の色をスウォッチに保存" style="width:24px;height:24px;border-radius:50%;border:1.5px dashed var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);line-height:1;flex-shrink:0;">+</button>
+        </div>
+      </div>
+      <div id="bg-panel-grad2" style="display:none;">
+        <div class="grad-panel">
+          <div>
+            <div class="section-label" style="margin-bottom:6px;margin-top:8px;">プリセット</div>
+            <div class="grad-presets" id="bg-grad-presets"></div>
+          </div>
+          <div>
+            <div class="section-label" style="margin-bottom:6px;">カスタム</div>
+            <div class="color-pair">
+              <label>色1</label><input type="color" id="bg-gc1" value="#2563eb"/>
+              <label style="margin-left:4px;">色2</label><input type="color" id="bg-gc2" value="#a855f7"/>
+            </div>
+          </div>
+          <div>
+            <div class="section-label" style="margin-bottom:6px;">方向</div>
+            <div class="dir-grid" id="bg-dir-grid"></div>
+          </div>
+        </div>
+      </div>
+      <div id="bg-panel-rainbow" style="display:none;">
+        <div class="grad-panel">
+          <div>
+            <div class="section-label" style="margin-bottom:6px;margin-top:8px;">パターン</div>
+            <div class="grad-presets" id="bg-rainbow-presets"></div>
+          </div>
+          <div>
+            <div class="section-label" style="margin-bottom:6px;">方向</div>
+            <div class="dir-grid" id="bg-rainbow-dir-grid"></div>
+          </div>
+        </div>
+      </div>
+      <div id="bg-panel-mesh" style="display:none;">
+        <div class="section-label" style="margin-bottom:6px;margin-top:8px;">にじみ / メッシュ</div>
+        <div class="grad-presets" id="bg-mesh-presets"></div>
+      </div>
+      <div id="bg-panel-pattern" style="display:none;">
+        <div class="section-label" style="margin-bottom:6px;margin-top:8px;">パターン</div>
+        <div class="grad-presets" id="bg-pattern-presets"></div>
+        <div style="margin-top:10px;">
+          <div class="section-label" style="margin-bottom:6px;">カラー</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div id="bg-pattern-swatches" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+            <input type="color" id="bg-pattern-color" value="#2563eb"/>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="section-label" style="margin-bottom:6px;">背景色</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div id="bg-pattern-bg-swatches" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+            <input type="color" id="bg-pattern-bg-color" value="#ffffff"/>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="section-label" style="margin-bottom:6px;">サイズ</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" min="4" max="32" step="1" value="8" id="bg-pattern-size" style="flex:1;accent-color:var(--accent);"/>
+            <input type="number" min="4" max="32" value="8" id="bg-pattern-size-num" style="width:52px;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:3px 5px;text-align:right;background:var(--bg);color:var(--text);"/>
+            <span style="font-size:11px;color:var(--muted);">px</span>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="action-btn primary" id="bg-btn-svg">SVGをダウンロード</button>
+        <button class="action-btn" id="bg-btn-css">CSSをコピー</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+const SWATCHES = ["#2563eb","#dc2626","#16a34a","#9333ea","#ea580c","#0891b2","#be185d","#ca8a04","#18170f","#ffe600","#f59e0b"];
+let solidColor="#2563eb", swatchIdx=0;
+let gc1="#2563eb", gc2="#a855f7";
+let colorMode="solid";
+let gradDir="to right";
+let rainbowDir="to right";
+let gradPresetIdx=0, rainbowIdx=0, meshIdx=0;
+let selectedIdx=0, txt="美しい見出しのデザイン", fs=15, fw=700;
+
+// ── GRADIENT PRESETS ───────────────────────────────────
+const GRAD_PRESETS=[
+  {label:"ブルー→パープル", c1:"#2563eb", c2:"#a855f7"},
+  {label:"サンセット",       c1:"#f97316", c2:"#ec4899"},
+  {label:"オーシャン",       c1:"#06b6d4", c2:"#3b82f6"},
+  {label:"フォレスト",       c1:"#10b981", c2:"#84cc16"},
+  {label:"ローズ",           c1:"#f43f5e", c2:"#fb923c"},
+  {label:"ミッドナイト",     c1:"#1e1b4b", c2:"#7c3aed"},
+  {label:"ミント",           c1:"#34d399", c2:"#06b6d4"},
+  {label:"コーラル",         c1:"#fb7185", c2:"#fbbf24"},
+  {label:"モノクロ",         c1:"#374151", c2:"#9ca3af"},
+  {label:"ゴールド",         c1:"#d97706", c2:"#fef08a"},
+];
+
+const RAINBOW_PRESETS=[
+  {label:"ネオン虹",   val:"linear-gradient(to right,#ff0080,#ff8c00,#40e0d0,#7b2ff7)"},
+  {label:"パステル虹", val:"linear-gradient(to right,#fda4af,#fcd34d,#86efac,#93c5fd,#c4b5fd)"},
+  {label:"サイバー",   val:"linear-gradient(to right,#06b6d4,#8b5cf6,#ec4899,#f97316)"},
+  {label:"オーロラ",   val:"linear-gradient(135deg,#00c9ff,#92fe9d,#f7971e,#f953c6)"},
+  {label:"キャンディ", val:"linear-gradient(to right,#f9a8d4,#c084fc,#818cf8,#67e8f9)"},
+  {label:"サンライズ", val:"linear-gradient(to right,#fde68a,#fb923c,#f43f5e,#a855f7)"},
+  {label:"キラゴールド", val:"linear-gradient(to right,#b8860b,#ffd700,#fffacd,#ffd700,#b8860b)"},
+];
+
+const MESH_PRESETS=[
+  {label:"にじみ1", val:"radial-gradient(ellipse at 20% 50%,#a855f7 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,#2563eb 0%,transparent 60%),radial-gradient(ellipse at 60% 80%,#ec4899 0%,transparent 60%)"},
+  {label:"にじみ2", val:"radial-gradient(ellipse at 10% 30%,#06b6d4 0%,transparent 55%),radial-gradient(ellipse at 90% 70%,#10b981 0%,transparent 55%),radial-gradient(ellipse at 50% 50%,#3b82f6 0%,transparent 70%)"},
+  {label:"にじみ3", val:"radial-gradient(ellipse at 30% 20%,#f97316 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#ec4899 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,#fbbf24 0%,transparent 60%)"},
+  {label:"ソフト",   val:"radial-gradient(ellipse at 25% 60%,#c4b5fd 0%,transparent 55%),radial-gradient(ellipse at 75% 40%,#93c5fd 0%,transparent 55%),radial-gradient(ellipse at 50% 90%,#fda4af 0%,transparent 50%)"},
+  {label:"ディープ", val:"radial-gradient(ellipse at 0% 0%,#312e81 0%,transparent 50%),radial-gradient(ellipse at 100% 100%,#1e3a5f 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,#4c1d95 0%,transparent 60%)"},
+  {label:"春",       val:"radial-gradient(ellipse at 20% 30%,#fbcfe8 0%,transparent 55%),radial-gradient(ellipse at 80% 70%,#bbf7d0 0%,transparent 55%),radial-gradient(ellipse at 60% 20%,#fef08a 0%,transparent 50%)"},
+];
+
+const DIR_OPTIONS=[
+  {label:"↑",     val:"to top"},
+  {label:"↗",    val:"to top right"},
+  {label:"→",     val:"to right"},
+  {label:"↘",    val:"to bottom right"},
+  {label:"↓",     val:"to bottom"},
+  {label:"↙",    val:"to bottom left"},
+  {label:"←",     val:"to left"},
+  {label:"↖",    val:"to top left"},
+  {label:"⟳",    val:"135deg"},
+  {label:"⟲",    val:"45deg"},
+];
+
+// ── COLOR RESOLVER ─────────────────────────────────────
+function resolveColor(){
+  if(colorMode==="solid") return {type:"solid", val:solidColor, css:`${solidColor}`};
+  if(colorMode==="grad2"){
+    const css=`linear-gradient(${gradDir},${gc1},${gc2})`;
+    return {type:"grad", val:css, css};
+  }
+  if(colorMode==="rainbow"){
+    const base=RAINBOW_PRESETS[rainbowIdx].val;
+    const val=base.replace(/linear-gradient\([^,]+,/,`linear-gradient(${rainbowDir},`);
+    return {type:"grad", val, css:val};
+  }
+  if(colorMode==="mesh"){
+    const val=MESH_PRESETS[meshIdx].val;
+    return {type:"mesh", val, css:val};
+  }
+}
+
+function getBg(){
+  const c=resolveColor();
+  return c.val;
+}
+function getBgCss(){return resolveColor().css;}
+function isGrad(){return colorMode!=="solid";}
+
+// ── STYLES ─────────────────────────────────────────────
+function hex2rgba(hex,a){
+  if(!hex||hex[0]!=="#") return `rgba(0,0,0,${a})`;
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function darken(hex){
+  try{const r=Math.max(0,parseInt(hex.slice(1,3),16)-50),g=Math.max(0,parseInt(hex.slice(3,5),16)-50),b=Math.max(0,parseInt(hex.slice(5,7),16)-50);return `rgb(${r},${g},${b})`;}catch(e){return hex;}
+}
+function mw(t,f){return Math.round(t.length*f*0.72);}
+
+function bgStyle(extra=""){
+  const bg=getBg();
+  if(isGrad()) return `background:${bg};${extra}`;
+  return `background:${bg};${extra}`;
+}
+
+const STYLES=[
+  {
+    name:"塗り背景",
+    render(col,t,f,w){
+      const bg=getBg(),grad=isGrad();
+      const pd=`${Math.round(f*.33)}px ${Math.round(f*1.2)}px`;
+      return `<span style="display:inline-block;background:${bg};color:#fff;padding:${pd};font-size:${f}px;font-weight:${w};border-radius:3px;font-family:'Noto Sans JP',sans-serif;">${t}</span>`;
+    },
+    css(){const bg=getBgCss(),f=fs,w=fw;return `background:${bg};\ncolor:#fff;\npadding:${Math.round(f*.33)}px ${Math.round(f*1.2)}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:3px;\ndisplay:inline-block;`;},
+    svg(col,t,f,w){
+      const pw=mw(t,f)+Math.round(f*2.4),h=Math.round(f*2.8);
+      const bg=getBg(),grad=isGrad();
+      if(grad){
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1||'#2563eb'}"/><stop offset="100%" stop-color="${gc2||'#a855f7'}"/></linearGradient></defs><rect width="${pw}" height="${h}" rx="3" fill="url(#bg)"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;
+      }
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect width="${pw}" height="${h}" rx="3" fill="${col}"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;
+    }
+  },
+  {
+    name:"角丸バッジ",
+    render(col,t,f,w){const bg=getBg();const pd=`${Math.round(f*.33)}px ${Math.round(f*1.4)}px`;return `<span style="display:inline-block;background:${bg};color:#fff;padding:${pd};font-size:${f}px;font-weight:${w};border-radius:999px;font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const f=fs,w=fw;return `background:${getBgCss()};\ncolor:#fff;\npadding:${Math.round(f*.33)}px ${Math.round(f*1.4)}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:999px;\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*2.8),h=Math.round(f*2.4),grad=isGrad();if(grad)return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></linearGradient></defs><rect width="${pw}" height="${h}" rx="${h/2}" fill="url(#bg)"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect width="${pw}" height="${h}" rx="${h/2}" fill="${col}"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"斜め切り",
+    render(col,t,f,w){const bg=getBg();const pd=`${Math.round(f*.33)}px ${Math.round(f*1.8)}px ${Math.round(f*.33)}px ${Math.round(f)}px`;return `<span style="display:inline-block;background:${bg};color:#fff;padding:${pd};font-size:${f}px;font-weight:${w};clip-path:polygon(0 0,100% 0,94% 100%,0 100%);font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const f=fs,w=fw;return `background:${getBgCss()};\ncolor:#fff;\npadding:${Math.round(f*.33)}px ${Math.round(f*1.8)}px ${Math.round(f*.33)}px ${Math.round(f)}px;\nfont-size:${f}px;\nfont-weight:${w};\nclip-path:polygon(0 0,100% 0,94% 100%,0 100%);\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*2.8),h=Math.round(f*2.4),cut=Math.round(pw*.06),grad=isGrad();const fill=grad?`url(#bg)`:col;const defs=grad?`<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></linearGradient></defs>`:'';return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}">${defs}<polygon points="0,0 ${pw},0 ${pw-cut},${h} 0,${h}" fill="${fill}"/><text x="${(pw-cut)/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"左ボーダー",
+    render(col,t,f,w){const c=isGrad()?gc1:col;const bw=Math.max(4,Math.round(f*.3));return `<span style="display:inline-block;border-left:${bw}px solid ${c};padding:${Math.round(f*.2)}px 0 ${Math.round(f*.2)}px ${Math.round(f*.8)}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw,bw=Math.max(4,Math.round(f*.3));return `border-left:${bw}px solid ${c};\npadding:${Math.round(f*.2)}px 0 ${Math.round(f*.2)}px ${Math.round(f*.8)}px;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const bw=Math.max(4,Math.round(f*.3)),pw=mw(t,f)+bw+Math.round(f*.8),h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect width="${bw}" height="${h}" fill="${col}"/><text x="${bw+Math.round(f*.5)}" y="${h*.66}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"下線シンプル",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border-bottom:2px solid ${c};padding-bottom:${Math.round(f*.27)}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border-bottom:2px solid ${c};\npadding-bottom:${Math.round(f*.27)}px;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+4,h=Math.round(f*2);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><text x="0" y="${h*.62}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text><line x1="0" y1="${h-2}" x2="${pw}" y2="${h-2}" stroke="${col}" stroke-width="2"/></svg>`;}
+  },
+  {
+    name:"下線グラデ",
+    render(col,t,f,w){
+      const c1=isGrad()?gc1:col, c2=isGrad()?gc2:hex2rgba(col,.2);
+      return `<span style="display:inline-block;padding-bottom:${Math.round(f*.3)}px;background:linear-gradient(to right,${c1},${c2}) bottom/100% 3px no-repeat;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;
+    },
+    css(){const c1=isGrad()?gc1:solidColor,c2=isGrad()?gc2:hex2rgba(solidColor,.2),f=fs,w=fw;return `padding-bottom:${Math.round(f*.3)}px;\nbackground:linear-gradient(to right,${c1},${c2}) bottom/100% 3px no-repeat;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+4,h=Math.round(f*2),c2=isGrad()?gc2:col;return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${col}"/><stop offset="100%" stop-color="${c2}" stop-opacity="${isGrad()?1:0.25}"/></linearGradient></defs><text x="0" y="${h*.62}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text><rect x="0" y="${h-4}" width="${pw}" height="3" fill="url(#g1)"/></svg>`;}
+  },
+  {
+    name:"ダブルライン",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border-top:3px solid ${c};border-bottom:1px solid ${c};padding:${Math.round(f*.3)}px 0;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border-top:3px solid ${c};\nborder-bottom:1px solid ${c};\npadding:${Math.round(f*.3)}px 0;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+4,h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><line x1="0" y1="2" x2="${pw}" y2="2" stroke="${col}" stroke-width="3"/><line x1="0" y1="${h-1}" x2="${pw}" y2="${h-1}" stroke="${col}" stroke-width="1"/><text x="0" y="${h*.62}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"薄塗り＋左線",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;background:${hex2rgba(c,.12)};color:${c};padding:${Math.round(f*.3)}px ${Math.round(f*.9)}px;font-size:${f}px;font-weight:${w};border-radius:0;border-left:4px solid ${c};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `background:${hex2rgba(c,.12)};\ncolor:${c};\npadding:${Math.round(f*.3)}px ${Math.round(f*.9)}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:0;\nborder-left:4px solid ${c};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*1.8)+8,h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect width="${pw}" height="${h}" fill="${col}" fill-opacity="0.12"/><rect width="4" height="${h}" fill="${col}"/><text x="16" y="${h*.64}" font-size="${f}" font-weight="${w}" fill="${col}" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"アウトライン",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border:2px solid ${c};color:${c};padding:${Math.round(f*.3)}px ${Math.round(f*1.1)}px;font-size:${f}px;font-weight:${w};border-radius:4px;font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border:2px solid ${c};\ncolor:${c};\npadding:${Math.round(f*.3)}px ${Math.round(f*1.1)}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:4px;\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*2.2),h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect x="1" y="1" width="${pw-2}" height="${h-2}" rx="4" fill="none" stroke="${col}" stroke-width="2"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="${col}" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"ハイライト",
+    render(col,t,f,w){const c1=isGrad()?gc1:col,c2=isGrad()?gc2:col;const bg=isGrad()?`linear-gradient(to right,${hex2rgba(c1,.4)},${hex2rgba(c2,.4)})`:`${hex2rgba(col,.35)}`;return `<span style="display:inline;background:linear-gradient(transparent 52%,${isGrad()?`linear-gradient(to right,${hex2rgba(c1,.4)},${hex2rgba(c2,.4)})`:hex2rgba(col,.4)} 52%);font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;padding:0 2px;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `background:linear-gradient(transparent 52%,${hex2rgba(c,.4)} 52%);\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline;\npadding:0 2px;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+4,h=Math.round(f*2),hy=Math.round(h*.52);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect x="0" y="${hy}" width="${pw}" height="${h-hy}" fill="${col}" fill-opacity="0.4"/><text x="2" y="${h*.72}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"ストライプ",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;background:repeating-linear-gradient(45deg,${hex2rgba(c,.12)},${hex2rgba(c,.12)} 3px,transparent 3px,transparent 8px);border-left:4px solid ${c};padding:${Math.round(f*.3)}px ${Math.round(f*.8)}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `background:repeating-linear-gradient(45deg,${hex2rgba(c,.12)},${hex2rgba(c,.12)} 3px,transparent 3px,transparent 8px);\nborder-left:4px solid ${c};\npadding:${Math.round(f*.3)}px ${Math.round(f*.8)}px;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*1.8),h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><defs><pattern id="s" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="${col}" stroke-width="3" /></pattern></defs><rect width="${pw}" height="${h}" fill="url(#s)"/><rect width="4" height="${h}" fill="${col}"/><text x="12" y="${h*.64}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"ノート風",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border-bottom:2px solid ${c};border-left:2px solid ${c};padding:${Math.round(f*.2)}px ${Math.round(f*.8)}px ${Math.round(f*.3)}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border-bottom:2px solid ${c};\nborder-left:2px solid ${c};\npadding:${Math.round(f*.2)}px ${Math.round(f*.8)}px ${Math.round(f*.3)}px;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*1.8),h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><line x1="2" y1="0" x2="2" y2="${h}" stroke="${col}" stroke-width="2"/><line x1="0" y1="${h-1}" x2="${pw}" y2="${h-1}" stroke="${col}" stroke-width="2"/><text x="${Math.round(f*.6)}" y="${h*.62}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"センター下線",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;text-align:center;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;"><span style="display:block;">${t}</span><span style="display:block;margin:4px auto 0;width:${Math.round(f*2)}px;height:3px;background:${getBg()};border-radius:2px;"></span></span>`;},
+    css(){const f=fs,w=fw;return `text-align:center;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;\n/* ::after: background:${getBgCss()}; width:${Math.round(f*2)}px; height:3px; border-radius:2px; */`;},
+    svg(col,t,f,w){const pw=mw(t,f)+4,h=Math.round(f*2.6),lw=Math.round(f*2);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><text x="${pw/2}" y="${h*.5}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text><rect x="${(pw-lw)/2}" y="${h-6}" width="${lw}" height="3" rx="1.5" fill="${col}"/></svg>`;}
+  },
+  {
+    name:"上下ライン",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border-top:1px solid ${c};border-bottom:1px solid ${c};padding:${Math.round(f*.4)}px ${Math.round(f*.5)}px;font-size:${f}px;font-weight:${w};letter-spacing:.05em;font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border-top:1px solid ${c};\nborder-bottom:1px solid ${c};\npadding:${Math.round(f*.4)}px ${Math.round(f*.5)}px;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f),h=Math.round(f*2.6);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><line x1="0" y1="1" x2="${pw}" y2="1" stroke="${col}" stroke-width="1"/><line x1="0" y1="${h-1}" x2="${pw}" y2="${h-1}" stroke="${col}" stroke-width="1"/><text x="${pw/2}" y="${h*.63}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"二重囲み",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border:1px solid ${c};outline:3px solid ${hex2rgba(c,.25)};outline-offset:2px;padding:${Math.round(f*.3)}px ${Math.round(f*.9)}px;font-size:${f}px;font-weight:${w};border-radius:3px;font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border:1px solid ${c};\noutline:3px solid ${hex2rgba(c,.25)};\noutline-offset:2px;\npadding:${Math.round(f*.3)}px ${Math.round(f*.9)}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:3px;\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*2),h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw+12}" height="${h+12}"><rect x="1" y="1" width="${pw+10}" height="${h+10}" rx="5" fill="none" stroke="${col}" stroke-width="1" stroke-opacity="0.3"/><rect x="6" y="6" width="${pw}" height="${h}" rx="3" fill="none" stroke="${col}" stroke-width="1.5"/><text x="${(pw+12)/2}" y="${(h+12)*.62}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"角マーク",
+    render(col,t,f,w){const c=isGrad()?gc1:col,aw=Math.round(f*.5);return `<span style="display:inline-flex;align-items:baseline;gap:4px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;"><span style="display:inline-block;width:0;height:0;border-left:${aw}px solid ${c};border-top:${aw}px solid transparent;border-bottom:${aw}px solid transparent;flex-shrink:0;margin-bottom:2px;"></span>${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw,aw=Math.round(f*.5);return `display:inline-flex;\nalign-items:baseline;\ngap:4px;\nfont-size:${f}px;\nfont-weight:${w};\n/* ::before: border-left:${aw}px solid ${c}; border-top/bottom:${aw}px solid transparent; */`;},
+    svg(col,t,f,w){const aw=Math.round(f*.5),pw=mw(t,f)+aw+8,h=Math.round(f*2);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><polygon points="0,${h*.28} ${aw},${h/2} 0,${h*.72}" fill="${col}"/><text x="${aw+6}" y="${h*.64}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"背景＋右線",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;background:${hex2rgba(c,.1)};border-right:4px solid ${c};padding:${Math.round(f*.3)}px ${Math.round(f*.9)}px;font-size:${f}px;font-weight:${w};border-radius:4px 0 0 4px;font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `background:${hex2rgba(c,.1)};\nborder-right:4px solid ${c};\npadding:${Math.round(f*.3)}px ${Math.round(f*.9)}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:4px 0 0 4px;\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*1.8)+4,h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect width="${pw-4}" height="${h}" rx="4" fill="${col}" fill-opacity="0.1"/><rect x="${pw-4}" width="4" height="${h}" fill="${col}"/><text x="${Math.round(f*.7)}" y="${h*.64}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"四角囲み",
+    render(col,t,f,w){const c=isGrad()?gc1:col;return `<span style="display:inline-block;border:2px solid ${c};padding:${Math.round(f*.3)}px ${Math.round(f*.8)}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;},
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `border:2px solid ${c};\npadding:${Math.round(f*.3)}px ${Math.round(f*.8)}px;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+Math.round(f*1.8),h=Math.round(f*2.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><rect x="1" y="1" width="${pw-2}" height="${h-2}" fill="none" stroke="${col}" stroke-width="2"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"ドット付き",
+    render(col,t,f,w){const c=isGrad()?gc1:col,ds=Math.round(f*.6);return `<span style="display:inline-flex;align-items:center;gap:${Math.round(f*.5)}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;"><span style="width:${ds}px;height:${ds}px;border-radius:50%;background:${getBg()};flex-shrink:0;"></span>${t}</span>`;},
+    css(){const f=fs,w=fw,ds=Math.round(f*.6);return `display:inline-flex;\nalign-items:center;\ngap:${Math.round(f*.5)}px;\nfont-size:${f}px;\nfont-weight:${w};\n/* ::before: width:${ds}px; height:${ds}px; border-radius:50%; background:${getBgCss()}; */`;},
+    svg(col,t,f,w){const ds=Math.round(f*.6),pw=mw(t,f)+ds+Math.round(f*.5)+4,h=Math.round(f*2);return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><circle cx="${ds/2}" cy="${h/2}" r="${ds/2}" fill="${col}"/><text x="${ds+Math.round(f*.5)}" y="${h*.64}" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"グラデ文字",
+    render(col,t,f,w){
+      const c1=isGrad()?gc1:col,c2=isGrad()?gc2:solidColor;
+      const id=`gtxt${Date.now()}`;
+      return `<span style="display:inline-block;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;background:linear-gradient(to right,${c1},${c2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${t}</span>`;
+    },
+    css(){const c1=isGrad()?gc1:solidColor,c2=isGrad()?gc2:solidColor,f=fs,w=fw;return `background:linear-gradient(to right,${c1},${c2});\n-webkit-background-clip:text;\n-webkit-text-fill-color:transparent;\nbackground-clip:text;\nfont-size:${f}px;\nfont-weight:${w};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){const pw=mw(t,f)+4,h=Math.round(f*2),c2=isGrad()?gc2:col;return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}"><defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${col}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><text x="0" y="${h*.72}" font-size="${f}" font-weight="${w}" fill="url(#tg)" font-family="sans-serif">${t}</text></svg>`;}
+  },
+  {
+    name:"シールド型",
+    render(col,t,f,w){
+      const bg=getBg();
+      const pd=Math.round(f*.33),px=Math.round(f*1.4),notch=Math.round(f*.55);
+      return `<span style="display:inline-block;background:${bg};color:#fff;padding:${pd}px ${px}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;clip-path:polygon(${notch}px 0%,calc(100% - ${notch}px) 0%,100% 50%,calc(100% - ${notch}px) 100%,${notch}px 100%,0% 50%);">${t}</span>`;
+    },
+    css(){const f=fs,w=fw,notch=Math.round(f*.55),pd=Math.round(f*.33),px=Math.round(f*1.4);return `background:${getBgCss()};\ncolor:#fff;\npadding:${pd}px ${px}px;\nfont-size:${f}px;\nfont-weight:${w};\nclip-path:polygon(${notch}px 0%,calc(100% - ${notch}px) 0%,100% 50%,calc(100% - ${notch}px) 100%,${notch}px 100%,0% 50%);\ndisplay:inline-block;`;},
+    svg(col,t,f,w){
+      const notch=Math.round(f*.55),pw=mw(t,f)+Math.round(f*2.8),h=Math.round(f*2.6);
+      const grad=isGrad();const fill=grad?`url(#bg)`:col;
+      const defs=grad?`<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></linearGradient></defs>`:'';
+      const pts=`${notch},0 ${pw-notch},0 ${pw},${h/2} ${pw-notch},${h} ${notch},${h} 0,${h/2}`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}">${defs}<polygon points="${pts}" fill="${fill}"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;
+    }
+  },
+  {
+    name:"シンプルリボン",
+    render(col,t,f,w){
+      const bg=getBg();
+      const pd=Math.round(f*.33),px=Math.round(f*1.4),notch=Math.round(f*.55);
+      return `<span style="display:inline-block;background:${bg};color:#fff;padding:${pd}px ${px}px;font-size:${f}px;font-weight:${w};font-family:'Noto Sans JP',sans-serif;clip-path:polygon(0% 0%,100% 0%,calc(100% - ${notch}px) 50%,100% 100%,0% 100%,${notch}px 50%);">${t}</span>`;
+    },
+    css(){const f=fs,w=fw,notch=Math.round(f*.55),pd=Math.round(f*.33),px=Math.round(f*1.4);return `background:${getBgCss()};\ncolor:#fff;\npadding:${pd}px ${px}px;\nfont-size:${f}px;\nfont-weight:${w};\nclip-path:polygon(0% 0%,100% 0%,calc(100% - ${notch}px) 50%,100% 100%,0% 100%,${notch}px 50%);\ndisplay:inline-block;`;},
+    svg(col,t,f,w){
+      const notch=Math.round(f*.55),pw=mw(t,f)+Math.round(f*2.8),h=Math.round(f*2.6);
+      const grad=isGrad();const fill=grad?`url(#bg)`:col;
+      const defs=grad?`<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></linearGradient></defs>`:'';
+      const pts=`0,0 ${pw},0 ${pw-notch},${h/2} ${pw},${h} 0,${h} ${notch},${h/2}`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}">${defs}<polygon points="${pts}" fill="${fill}"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;
+    }
+  },
+  {
+    name:"タブ囲み",
+    render(col,t,f,w){
+      const bg=getBg(),c=isGrad()?gc1:col;
+      const pd=Math.round(f*.33),px=Math.round(f*1.2),r=Math.round(f*.4),bw=Math.max(2,Math.round(f*.15));
+      return `<span style="display:inline-block;background:${bg};color:#fff;padding:${pd}px ${px}px;font-size:${f}px;font-weight:${w};border-radius:${r}px ${r}px 0 0;border-bottom:${bw}px solid ${isGrad()?gc2:col};font-family:'Noto Sans JP',sans-serif;">${t}</span>`;
+    },
+    css(){const c=isGrad()?gc1:solidColor,c2=isGrad()?gc2:solidColor,f=fs,w=fw,r=Math.round(f*.4),pd=Math.round(f*.33),px=Math.round(f*1.2),bw=Math.max(2,Math.round(f*.15));return `background:${getBgCss()};\ncolor:#fff;\npadding:${pd}px ${px}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:${r}px ${r}px 0 0;\nborder-bottom:${bw}px solid ${c2};\ndisplay:inline-block;`;},
+    svg(col,t,f,w){
+      const pw=mw(t,f)+Math.round(f*2.4),h=Math.round(f*2.4),r=Math.round(f*.4),bw=Math.max(2,Math.round(f*.15));
+      const grad=isGrad();const fill=grad?`url(#bg)`:col;const lineCol=grad?gc2:col;
+      const defs=grad?`<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></linearGradient></defs>`:'';
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}">${defs}<path d="M${r},0 H${pw-r} Q${pw},0 ${pw},${r} V${h} H0 V${r} Q0,0 ${r},0 Z" fill="${fill}"/><line x1="0" y1="${h}" x2="${pw}" y2="${h}" stroke="${lineCol}" stroke-width="${bw}"/><text x="${pw/2}" y="${h*.62}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;
+    }
+  },
+  {
+    name:"バンザイ（破線）",
+    render(col,t,f,w){
+      const c=isGrad()?gc1:col;
+      const sw=Math.max(2,Math.round(f*.12)),gap=Math.round(f*.7);
+      const svgW=Math.round(f*.9),svgH=Math.round(f*2.2);
+      const dash=`${Math.round(f*.2)} ${Math.round(f*.25)}`;
+      // 左: /方向（上:左端→下:右端）
+      const lSvg=`<svg xmlns='http://www.w3.org/2000/svg' width='${svgW}' height='${svgH}'><line x1='4' y1='4' x2='${svgW-2}' y2='${svgH-4}' stroke='${c}' stroke-width='${sw}' stroke-linecap='round' stroke-dasharray='${dash}'/></svg>`;
+      // 右: \方向（上:右端→下:左端）
+      const rSvg=`<svg xmlns='http://www.w3.org/2000/svg' width='${svgW}' height='${svgH}'><line x1='${svgW-2}' y1='4' x2='4' y2='${svgH-4}' stroke='${c}' stroke-width='${sw}' stroke-linecap='round' stroke-dasharray='${dash}'/></svg>`;
+      return `<span style="display:inline-flex;align-items:center;gap:${gap}px;font-family:'Noto Sans JP',sans-serif;">${lSvg}<span style="font-size:${f}px;font-weight:${w};color:inherit;">${t}</span>${rSvg}</span>`;
+    },
+    css(){const c=isGrad()?gc1:solidColor,f=fs,w=fw;return `display:inline-flex;\nalign-items:center;\ngap:${Math.round(f*.7)}px;\nfont-size:${f}px;\nfont-weight:${w};\n/* 左右に破線斜めSVGを配置 */`;},
+    svg(col,t,f,w){
+      const sw=Math.max(2,Math.round(f*.12)),gap=Math.round(f*.7);
+      const tw=mw(t,f),bw=Math.round(f*.9),h=Math.round(f*2.2);
+      const pw=tw+gap*2+bw*2;
+      const dash=`${Math.round(f*.2)} ${Math.round(f*.25)}`;
+      const lx1=bw-2,lx2=4,rx1=pw-bw+4,rx2=pw-4;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${h}">
+        <line x1="${lx1}" y1="4" x2="${lx2}" y2="${h-4}" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash}"/>
+        <line x1="${rx1}" y1="4" x2="${rx2}" y2="${h-4}" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash}"/>
+        <text x="${pw/2}" y="${h*.62}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#1a1916" font-family="sans-serif">${t}</text>
+      </svg>`;
+    }
+  },
+  {
+    name:"フキダシ囲み",
+    render(col,t,f,w){
+      const bg=getBg(),c=isGrad()?gc1:col;
+      const pd=Math.round(f*.33),px=Math.round(f*1.2),tail=Math.round(f*.4);
+      return `<span style="display:inline-block;position:relative;font-family:'Noto Sans JP',sans-serif;"><span style="display:inline-block;background:${bg};color:#fff;padding:${pd}px ${px}px;font-size:${f}px;font-weight:${w};border-radius:3px;">${t}</span><span style="position:absolute;bottom:-${tail}px;left:50%;transform:translateX(-50%);width:0;height:0;border-top:${tail}px solid ${isGrad()?gc1:col};border-left:${tail}px solid transparent;border-right:${tail}px solid transparent;"></span></span>`;
+    },
+    css(){const f=fs,w=fw,pd=Math.round(f*.35),px=Math.round(f),r=Math.round(f*.3),tail=Math.round(f*.5);return `background:${getBgCss()};\ncolor:#fff;\npadding:${pd}px ${px}px;\nfont-size:${f}px;\nfont-weight:${w};\nborder-radius:${r}px;\ndisplay:inline-block;\n/* ::after: border-top:${tail}px solid [color]; border-left/right:${tail}px solid transparent; */`;},
+    svg(col,t,f,w){
+      const pw=mw(t,f)+Math.round(f*2),h=Math.round(f*2.4),tail=Math.round(f*.5),r=Math.round(f*.3);
+      const grad=isGrad();const fill=grad?`url(#bg)`:col;
+      const defs=grad?`<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></linearGradient></defs>`:'';
+      const total=h+tail,tailX=Math.round(f);
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${total}">${defs}<rect width="${pw}" height="${h}" rx="${r}" fill="${fill}"/><polygon points="${tailX},${h} ${tailX+tail*2},${h} ${tailX+tail},${total}" fill="${grad?gc1:col}"/><text x="${pw/2}" y="${h*.64}" text-anchor="middle" font-size="${f}" font-weight="${w}" fill="#fff" font-family="sans-serif">${t}</text></svg>`;
+    }
+  },
+];
+// カスタムスウォッチ（localStorageで永続化）
+let customSwatches = [];
+try { customSwatches = JSON.parse(localStorage.getItem('midashi-swatches') || '[]'); } catch(e) {}
+
+function saveCustomSwatches(){
+  try { localStorage.setItem('midashi-swatches', JSON.stringify(customSwatches)); } catch(e) {}
+}
+
+function buildSwatches(){
+  const row=document.getElementById("swatches");row.innerHTML="";
+  const allSwatches=[...SWATCHES,...customSwatches];
+  allSwatches.forEach((c,i)=>{
+    const s=document.createElement("div");
+    s.className="swatch"+(i===swatchIdx?" on":"");
+    s.style.background=c;
+    s.onclick=()=>{swatchIdx=i;solidColor=c;document.getElementById("custom-color").value=c;renderAll();};
+    // カスタムスウォッチのみ右クリックで削除
+    if(i>=SWATCHES.length){
+      const ci=i-SWATCHES.length;
+      s.oncontextmenu=(e)=>{
+        e.preventDefault();
+        showCtxMenu(e.clientX, e.clientY, ci);
+      };
+    }
+    row.appendChild(s);
+  });
+}
+
+let ctxTargetIdx=null, ctxTarget='midashi';
+function showCtxMenu(x,y,ci,target='midashi'){
+  ctxTargetIdx=ci;ctxTarget=target;
+  const menu=document.getElementById("ctx-menu");
+  menu.style.display="block";menu.style.left=x+"px";menu.style.top=y+"px";
+  requestAnimationFrame(()=>{
+    const r=menu.getBoundingClientRect();
+    if(r.right>window.innerWidth)menu.style.left=(x-r.width)+"px";
+    if(r.bottom>window.innerHeight)menu.style.top=(y-r.height)+"px";
+  });
+}
+function hideCtxMenu(){document.getElementById("ctx-menu").style.display="none";ctxTargetIdx=null;}
+document.getElementById("ctx-delete").onclick=()=>{
+  if(ctxTargetIdx===null)return;
+  if(ctxTarget==='bg'){
+    bgCustomSwatches.splice(ctxTargetIdx,1);saveBgCustomSwatches();
+    bgSwatchIdx=0;bgColor=BG_SWATCHES[0];bgRenderAll();
+  } else {
+    customSwatches.splice(ctxTargetIdx,1);saveCustomSwatches();
+    swatchIdx=0;solidColor=SWATCHES[0];renderAll();
+  }
+  hideCtxMenu();
+};
+document.addEventListener("click",()=>hideCtxMenu());
+document.addEventListener("keydown",e=>{if(e.key==="Escape")hideCtxMenu();});
+
+document.getElementById("save-color").onclick=()=>{
+  const c=document.getElementById("custom-color").value;
+  if([...SWATCHES,...customSwatches].includes(c)) return;
+  customSwatches.push(c);
+  saveCustomSwatches();
+  swatchIdx=SWATCHES.length+customSwatches.length-1;
+  solidColor=c;
+  renderAll();
+};
+
+function buildGradPresets(){
+  const row=document.getElementById("grad-presets");row.innerHTML="";
+  GRAD_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===gradPresetIdx?" on":"");
+    s.style.background=`linear-gradient(135deg,${p.c1},${p.c2})`;s.title=p.label;
+    s.onclick=()=>{gradPresetIdx=i;gc1=p.c1;gc2=p.c2;document.getElementById("gc1").value=p.c1;document.getElementById("gc2").value=p.c2;renderAll();};
+    row.appendChild(s);
+  });
+}
+
+function buildRainbowPresets(){
+  const row=document.getElementById("rainbow-presets");row.innerHTML="";
+  RAINBOW_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===rainbowIdx?" on":"");
+    s.style.background=p.val;s.title=p.label;
+    s.onclick=()=>{rainbowIdx=i;renderAll();};
+    row.appendChild(s);
+  });
+}
+
+function buildMeshPresets(){
+  const row=document.getElementById("mesh-presets");row.innerHTML="";
+  MESH_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===meshIdx?" on":"");
+    s.style.background=p.val;s.title=p.label;
+    s.onclick=()=>{meshIdx=i;renderAll();};
+    row.appendChild(s);
+  });
+}
+
+function buildRainbowDirGrid(){
+  const grid=document.getElementById("rainbow-dir-grid");if(!grid)return;grid.innerHTML="";
+  DIR_OPTIONS.forEach(d=>{
+    const b=document.createElement("button");b.className="dir-btn"+(rainbowDir===d.val?" on":"");b.textContent=d.label;b.title=d.val;
+    b.onclick=()=>{rainbowDir=d.val;renderAll();};
+    grid.appendChild(b);
+  });
+}
+
+function buildDirGrid(){
+  const grid=document.getElementById("dir-grid");grid.innerHTML="";
+  DIR_OPTIONS.forEach(d=>{
+    const b=document.createElement("button");b.className="dir-btn"+(gradDir===d.val?" on":"");b.textContent=d.label;b.title=d.val;
+    b.onclick=()=>{gradDir=d.val;renderAll();};
+    grid.appendChild(b);
+  });
+}
+
+function openOverlay(i){
+  selectedIdx=i;
+  const col=colorMode==="solid"?solidColor:gc1;
+  const s=STYLES[i];
+  document.getElementById("overlay-preview").innerHTML=s.render(col,txt,Math.round(fs*1.6),fw);
+  document.getElementById("overlay-name").textContent=s.name;
+  document.getElementById("overlay-count").textContent=`${i+1} / ${STYLES.length}`;
+  document.getElementById("overlay").classList.add("open");
+  buildPreview();
+
+  document.getElementById("overlay-svg").onclick=()=>{
+    const svgStr=s.svg(col,txt,fs,fw);
+    const blob=new Blob([svgStr],{type:"image/svg+xml"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download=`midashi-${s.name}.svg`;a.click();URL.revokeObjectURL(url);
+  };
+  document.getElementById("overlay-css").onclick=()=>{copyText(`.midashi{\n  ${s.css().split('\n').join('\n  ')}\n}`,"overlay-css","CSSをコピー");};
+  document.getElementById("overlay-html").onclick=()=>{copyText(s.render(col,txt,fs,fw),"overlay-html","HTMLをコピー");};
+}
+
+function buildGrid(){
+  const grid=document.getElementById("grid");
+  const col=colorMode==="solid"?solidColor:gc1;
+  const isFirst=grid.children.length===0;
+  if(isFirst){
+    STYLES.forEach((s,i)=>{
+      const card=document.createElement("div");card.className="card";card.dataset.idx=i;
+      const prev=document.createElement("div");prev.className="card-preview";
+      const nm=document.createElement("span");nm.className="card-name";nm.textContent=s.name;
+      card.appendChild(prev);card.appendChild(nm);
+      card.onclick=(e)=>{
+        selectedIdx=i;
+        updateGridSelection();
+        buildPreview();
+        if(e.detail===2) openOverlay(i);
+      };
+      grid.appendChild(card);
+    });
+    document.getElementById("style-count").textContent=STYLES.length;
+  }
+  STYLES.forEach((s,i)=>{
+    const card=grid.children[i];
+    const prev=card.querySelector(".card-preview");
+    prev.innerHTML=s.render(col,"見出し例",Math.max(11,Math.round(fs*.82)),fw);
+  });
+  updateGridSelection();
+}
+
+function updateGridSelection(){
+  const grid=document.getElementById("grid");
+  Array.from(grid.children).forEach((card,i)=>{
+    card.className="card"+(i===selectedIdx?" sel":"");
+  });
+}
+
+function buildPreview(){
+  const col=colorMode==="solid"?solidColor:gc1;
+  document.getElementById("preview").innerHTML=STYLES[selectedIdx].render(col,txt,fs,fw);
+  document.getElementById("style-name").textContent=STYLES[selectedIdx].name;
+}
+
+function showPanel(mode){
+  document.getElementById("panel-solid").style.display=mode==="solid"?"block":"none";
+  document.getElementById("panel-grad").style.display=mode==="grad2"?"block":"none";
+  document.getElementById("panel-rainbow").style.display=mode==="rainbow"?"block":"none";
+  document.getElementById("panel-mesh").style.display=mode==="mesh"?"block":"none";
+}
+
+function renderAll(){
+  buildSwatches();buildGradPresets();buildRainbowPresets();buildMeshPresets();buildDirGrid();buildRainbowDirGrid();buildGrid();buildPreview();
+}
+
+// ── EVENTS ─────────────────────────────────────────────
+document.querySelectorAll(".mode-tab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".mode-tab").forEach(t=>t.classList.remove("on"));
+    tab.classList.add("on");colorMode=tab.dataset.mode;showPanel(colorMode);renderAll();
+  };
+});
+document.getElementById("nav-prev").onclick=()=>openOverlay((selectedIdx-1+STYLES.length)%STYLES.length);
+document.getElementById("nav-next").onclick=()=>openOverlay((selectedIdx+1)%STYLES.length);
+document.getElementById("preview-zoom").onclick=()=>openOverlay(selectedIdx);
+document.getElementById("overlay-close").onclick=()=>document.getElementById("overlay").classList.remove("open");
+document.getElementById("overlay").onclick=(e)=>{if(e.target===e.currentTarget)document.getElementById("overlay").classList.remove("open");};
+document.addEventListener("keydown",e=>{
+  if(!document.getElementById("overlay").classList.contains("open"))return;
+  if(e.key==="Escape")document.getElementById("overlay").classList.remove("open");
+  if(e.key==="ArrowLeft")openOverlay((selectedIdx-1+STYLES.length)%STYLES.length);
+  if(e.key==="ArrowRight")openOverlay((selectedIdx+1)%STYLES.length);
+});
+
+document.getElementById("txt").oninput=e=>{txt=e.target.value||"見出し";renderAll();};
+document.getElementById("custom-color").oninput=e=>{solidColor=e.target.value;swatchIdx=-1;renderAll();};
+document.getElementById("fs").oninput=e=>{fs=parseInt(e.target.value);document.getElementById("fs-val").textContent=fs+"px";renderAll();};
+document.getElementById("weight-toggle").onclick=e=>{
+  const b=e.target.closest(".wtog");if(!b)return;
+  document.querySelectorAll(".wtog").forEach(x=>x.classList.remove("on"));b.classList.add("on");fw=parseInt(b.dataset.w);renderAll();
+};
+document.getElementById("gc1").oninput=e=>{gc1=e.target.value;gradPresetIdx=-1;renderAll();};
+document.getElementById("gc2").oninput=e=>{gc2=e.target.value;gradPresetIdx=-1;renderAll();};
+
+document.getElementById("btn-svg").onclick=()=>{
+  const col=colorMode==="solid"?solidColor:gc1;
+  const svgStr=STYLES[selectedIdx].svg(col,txt,fs,fw);
+  const blob=new Blob([svgStr],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download=`midashi-${STYLES[selectedIdx].name}.svg`;a.click();URL.revokeObjectURL(url);
+};
+function copyText(text,btnId,label){
+  navigator.clipboard.writeText(text).then(()=>{
+    const b=document.getElementById(btnId);b.textContent="コピーしました！";b.classList.add("success");
+    setTimeout(()=>{b.textContent=label;b.classList.remove("success");},1500);
+  });
+}
+document.getElementById("btn-css").onclick=()=>{copyText(`.midashi {\n  ${STYLES[selectedIdx].css().split('\n').join('\n  ')}\n}`,"btn-css","CSSをコピー");};
+document.getElementById("btn-html").onclick=()=>{const col=colorMode==="solid"?solidColor:gc1;copyText(STYLES[selectedIdx].render(col,txt,fs,fw),"btn-html","HTMLをコピー");};
+
+renderAll();
+
+// ── PAGE SWITCH ────────────────────────────────────────
+let currentPage="midashi";
+document.querySelectorAll(".page-tab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".page-tab").forEach(t=>t.classList.remove("on"));
+    tab.classList.add("on");
+    currentPage=tab.dataset.page;
+    document.getElementById("midashi-toolbar").classList.toggle("hide",currentPage!=="midashi");
+    document.getElementById("bg-toolbar").classList.toggle("hide",currentPage!=="bg");
+    document.querySelector(".layout").style.display=currentPage==="midashi"?"grid":"none";
+    document.getElementById("bg-page").style.display=currentPage==="bg"?"block":"none";
+    if(currentPage==="bg"){
+      bgRenderAll();
+    }
+  };
+});
+
+// ── BG PICKER STATE ────────────────────────────────────
+const BG_SWATCHES=["#2563eb","#dc2626","#16a34a","#9333ea","#ea580c","#0891b2","#be185d","#1a1916","#ffe600"];
+let bgColor="#2563eb", bgSwatchIdx=0;
+let bgColorMode="solid", bgGc1="#2563eb", bgGc2="#a855f7";
+let bgGradDir="to right", bgRainbowIdx=0, bgMeshIdx=0, bgRainbowDir="to right";
+let bgPatternIdx=0, bgPatternColor="#2563eb", bgPatternBgColor="#ffffff", bgPatternSize=8;
+let bgSelectedIdx=0, bgHeight=120, bgTriHeight=60, bgWidth=1440;
+
+// カスタムスウォッチ（背景用）
+let bgCustomSwatches=[];
+try{bgCustomSwatches=JSON.parse(localStorage.getItem('bg-swatches')||'[]');}catch(e){}
+function saveBgCustomSwatches(){try{localStorage.setItem('bg-swatches',JSON.stringify(bgCustomSwatches));}catch(e){}}
+
+// ── PATTERN DEFINITIONS ────────────────────────────────
+const BG_PATTERNS=[
+  {
+    name:"水玉",
+    preview(c,bg,sz){const r=sz*.35;return `<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="${bg}"/><circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="${c}" /></svg>`;},
+    svgDefs(id,c,bg,sz){const r=sz*.35;return `<defs><pattern id="${id}" x="0" y="0" width="${sz}" height="${sz}" patternUnits="userSpaceOnUse"><rect width="${sz}" height="${sz}" fill="${bg}"/><circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="${c}" /></pattern></defs>`;}
+  },
+  {
+    name:"ドット（小）",
+    preview(c,bg,sz){const r=sz*.18;return `<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="${bg}"/><circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="${c}" /></svg>`;},
+    svgDefs(id,c,bg,sz){const r=sz*.18;return `<defs><pattern id="${id}" x="0" y="0" width="${sz}" height="${sz}" patternUnits="userSpaceOnUse"><rect width="${sz}" height="${sz}" fill="${bg}"/><circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="${c}" /></pattern></defs>`;}
+  },
+  {
+    name:"ストライプ（横）",
+    preview(c,bg,sz){const sw=sz*.25;return `<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="${bg}"/><rect y="${sz*.375}" width="${sz}" height="${sw}" fill="${c}" /></svg>`;},
+    svgDefs(id,c,bg,sz){const sw=sz*.25;return `<defs><pattern id="${id}" x="0" y="0" width="${sz}" height="${sz}" patternUnits="userSpaceOnUse"><rect width="${sz}" height="${sz}" fill="${bg}"/><rect y="${sz*.375}" width="${sz}" height="${sw}" fill="${c}" /></pattern></defs>`;}
+  },
+  {
+    name:"ストライプ（斜め）",
+    preview(c,bg,sz){const sw=sz*.25;return `<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="${bg}"/><line x1="0" y1="${sz}" x2="${sz}" y2="0" stroke="${c}" stroke-width="${sw}" /><line x1="-${sz}" y1="${sz}" x2="0" y2="0" stroke="${c}" stroke-width="${sw}" /><line x1="${sz}" y1="${sz*2}" x2="${sz*2}" y2="${sz}" stroke="${c}" stroke-width="${sw}" /></svg>`;},
+    svgDefs(id,c,bg,sz){const sw=sz*.25;return `<defs><pattern id="${id}" x="0" y="0" width="${sz}" height="${sz}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${sz}" height="${sz}" fill="${bg}"/><rect width="${sw}" height="${sz}" fill="${c}" /></pattern></defs>`;}
+  },
+  {
+    name:"チェック（格子）",
+    preview(c,bg,sz){const h=sz/2;return `<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="${bg}"/><rect width="${h}" height="${h}" fill="${c}" /><rect x="${h}" y="${h}" width="${h}" height="${h}" fill="${c}" /></svg>`;},
+    svgDefs(id,c,bg,sz){const h=sz/2;return `<defs><pattern id="${id}" x="0" y="0" width="${sz}" height="${sz}" patternUnits="userSpaceOnUse"><rect width="${sz}" height="${sz}" fill="${bg}"/><rect width="${h}" height="${h}" fill="${c}" /><rect x="${h}" y="${h}" width="${h}" height="${h}" fill="${c}" /></pattern></defs>`;}
+  },
+  {
+    name:"クロスハッチ",
+    preview(c,bg,sz){const sw=sz*.12;return `<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="${bg}"/><line x1="0" y1="${sz}" x2="${sz}" y2="0" stroke="${c}" stroke-width="${sw}" /><line x1="0" y1="0" x2="${sz}" y2="${sz}" stroke="${c}" stroke-width="${sw}" /></svg>`;},
+    svgDefs(id,c,bg,sz){const sw=sz*.12;return `<defs><pattern id="${id}" x="0" y="0" width="${sz}" height="${sz}" patternUnits="userSpaceOnUse"><rect width="${sz}" height="${sz}" fill="${bg}"/><line x1="0" y1="${sz}" x2="${sz}" y2="0" stroke="${c}" stroke-width="${sw}" /><line x1="0" y1="0" x2="${sz}" y2="${sz}" stroke="${c}" stroke-width="${sw}" /></pattern></defs>`;}
+  },
+];
+
+function bgGetPatternSvgUrl(patternIdx,c,bg,sz){
+  const p=BG_PATTERNS[patternIdx];
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}">${p.svgDefs('pt',c,bg,sz).replace('<defs>','').replace('</defs>','')}</svg>`;
+  const defs=p.svgDefs('pt',c,bg,sz);
+  // CSS用のdata URI
+  const enc=encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}">${p.preview(c,bg,sz).replace(/<svg[^>]*>/,'').replace('</svg>','')}</svg>`);
+  return `url("data:image/svg+xml,${enc}")`;
+}
+
+function bgGetColor(){
+  if(bgColorMode==="solid") return bgColor;
+  if(bgColorMode==="grad2") return `linear-gradient(${bgGradDir},${bgGc1},${bgGc2})`;
+  if(bgColorMode==="rainbow"){
+    const base=RAINBOW_PRESETS[bgRainbowIdx].val;
+    return base.replace(/linear-gradient\([^,]+,/,`linear-gradient(${bgRainbowDir},`);
+  }
+  if(bgColorMode==="mesh") return MESH_PRESETS[bgMeshIdx].val;
+  if(bgColorMode==="pattern"){
+    const p=BG_PATTERNS[bgPatternIdx];
+    const enc=encodeURIComponent(p.preview(bgPatternColor,bgPatternBgColor,bgPatternSize));
+    return `url("data:image/svg+xml,${enc}")`;
+  }
+  return bgColor;
+}
+
+// ── BG SHAPES ──────────────────────────────────────────
+const BG_SHAPES=[
+  {
+    name:"ウェーブ（下）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:ellipse(55% 60% at 50% 40%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:ellipse(55% 60% at 50% 40%);`;},
+    svg(c,h,w){const amp=Math.round(h*.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><path d="M0,0 L${w},0 L${w},${h-amp} Q${w*.75},${h} ${w*.5},${h-amp} Q${w*.25},${h-amp*2} 0,${h-amp} Z" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"ウェーブ（上）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 0,100% 0,100% 60%,75% 100%,50% 60%,25% 100%,0 60%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 0,100% 0,100% 60%,75% 100%,50% 60%,25% 100%,0 60%);`;},
+    svg(c,h,w){const amp=Math.round(h*.4);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><path d="M0,0 L${w},0 L${w},${h-amp} Q${w*.75},${h-amp*2} ${w*.5},${h-amp} Q${w*.25},${h} 0,${h-amp} Z" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"斜め切り（右下）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 0,100% 0,100% 60%,0 100%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 0,100% 0,100% 60%,0 100%);`;},
+    svg(c,h,w){return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><polygon points="0,0 ${w},0 ${w},${Math.round(h*.6)} 0,${h}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"斜め切り（左下）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 0,100% 0,100% 100%,0 60%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 0,100% 0,100% 100%,0 60%);`;},
+    svg(c,h,w){return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><polygon points="0,0 ${w},0 ${w},${h} 0,${Math.round(h*.6)}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"山型（1峰）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 100%,0 50%,50% 0%,100% 50%,100% 100%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 100%,0 50%,50% 0%,100% 50%,100% 100%);`;},
+    svg(c,h,w){return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><polygon points="0,${h} 0,${Math.round(h*.5)} ${Math.round(w/2)},0 ${w},${Math.round(h*.5)} ${w},${h}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"山型（2峰）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 100%,0 60%,25% 0%,50% 60%,75% 0%,100% 60%,100% 100%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 100%,0 60%,25% 0%,50% 60%,75% 0%,100% 60%,100% 100%);`;},
+    svg(c,h,w){const m=Math.round(h*.6);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><polygon points="0,${h} 0,${m} ${Math.round(w*.25)},0 ${Math.round(w*.5)},${m} ${Math.round(w*.75)},0 ${w},${m} ${w},${h}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"三角（下向き）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 0,100% 0,50% 100%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 0,100% 0,50% 100%);`;},
+    svg(c,h,w){return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><polygon points="0,0 ${w},0 ${Math.round(w/2)},${h}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"半円（下）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};border-radius:0 0 50% 50%;"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nborder-radius:0 0 50% 50%;`;},
+    svg(c,h,w){return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><path d="M0,0 H${w} V${Math.round(h*.5)} Q${Math.round(w/2)},${h} 0,${Math.round(h*.5)} Z" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"半円（上）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};border-radius:50% 50% 0 0;"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nborder-radius:50% 50% 0 0;`;},
+    svg(c,h,w){return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><path d="M0,${h} H${w} V${Math.round(h*.5)} Q${Math.round(w/2)},0 0,${Math.round(h*.5)} Z" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"有機（左膨らみ）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:ellipse(60% 55% at 40% 50%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:ellipse(60% 55% at 40% 50%);`;},
+    svg(c,h,w){const cx=Math.round(w*.4),cy=Math.round(h*.5),rx=Math.round(w*.6),ry=Math.round(h*.55);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"有機（右膨らみ）",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:ellipse(60% 55% at 60% 50%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:ellipse(60% 55% at 60% 50%);`;},
+    svg(c,h,w){const cx=Math.round(w*.6),cy=Math.round(h*.5),rx=Math.round(w*.6),ry=Math.round(h*.55);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"ジグザグ",
+    render(c,h){return `<div style="width:100%;height:${h}px;background:${c};clip-path:polygon(0 0,100% 0,100% 70%,87.5% 100%,75% 70%,62.5% 100%,50% 70%,37.5% 100%,25% 70%,12.5% 100%,0 70%);"></div>`;},
+    css(c,h){return `width:100%;\nheight:${h}px;\nbackground:${c};\nclip-path:polygon(0 0,100% 0,100% 70%,87.5% 100%,75% 70%,62.5% 100%,50% 70%,37.5% 100%,25% 70%,12.5% 100%,0 70%);`;},
+    svg(c,h,w){const t=Math.round(h*.7),bot=h,seg=Math.round(w/8);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${bgGradDefs(c,w,h)}</defs><polygon points="0,0 ${w},0 ${w},${t} ${seg*7},${bot} ${seg*6},${t} ${seg*5},${bot} ${seg*4},${t} ${seg*3},${bot} ${seg*2},${t} ${seg},${bot} 0,${t}" fill="${bgFill(c)}"/></svg>`;}
+  },
+  {
+    name:"V字矢印",
+    hasTriH:true,
+    render(c,h,triH){
+      const th=triH||60;
+      const total=h+th;
+      return `<div style="width:100%;height:${total}px;background:${c};clip-path:polygon(0 0,100% 0,100% ${Math.round(h/total*100)}%,50% 100%,0 ${Math.round(h/total*100)}%);"></div>`;
+    },
+    css(c,h,triH){
+      const th=triH||60;const total=h+th;
+      const p=Math.round(h/total*100);
+      return `width:100%;\nheight:${total}px;\nbackground:${c};\nclip-path:polygon(0 0,100% 0,100% ${p}%,50% 100%,0 ${p}%);`;
+    },
+    svg(c,h,w,triH){
+      const th=triH||60;const total=h+th;
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${total}" viewBox="0 0 ${w} ${total}"><defs>${bgGradDefs(c,w,total)}</defs><polygon points="0,0 ${w},0 ${w},${h} ${Math.round(w/2)},${total} 0,${h}" fill="${bgFill(c)}"/></svg>`;
+    }
+  },
+];
+
+function bgGradDefs(c,w,h){
+  if(bgColorMode==="grad2") return `<linearGradient id="bgg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${bgGc1}"/><stop offset="100%" stop-color="${bgGc2}"/></linearGradient>`;
+  if(bgColorMode==="pattern"){
+    const p=BG_PATTERNS[bgPatternIdx];
+    const sz=bgPatternSize;
+    // userSpaceOnUseでwidth/heightをpxで指定（Figma互換）
+    const inner=p.svgDefs("bgg",bgPatternColor,bgPatternBgColor,sz).replace('<defs>','').replace('</defs>','');
+    return inner;
+  }
+  return "";
+}
+function bgFill(c){
+  if(bgColorMode==="grad2"||bgColorMode==="pattern") return "url(#bgg)";
+  return c;
+}
+
+function bgBuildSwatches(id){
+  const row=document.getElementById(id);if(!row)return;row.innerHTML="";
+  const allS=[...BG_SWATCHES,...bgCustomSwatches];
+  allS.forEach((c,i)=>{
+    const s=document.createElement("div");s.className="swatch"+(i===bgSwatchIdx?" on":"");s.style.background=c;
+    s.onclick=()=>{bgSwatchIdx=i;bgColor=c;document.getElementById("bg-color2").value=c;bgRenderAll();};
+    if(i>=BG_SWATCHES.length){
+      const ci=i-BG_SWATCHES.length;
+      s.oncontextmenu=(e)=>{e.preventDefault();showCtxMenu(e.clientX,e.clientY,ci,'bg');};
+    }
+    row.appendChild(s);
+  });
+}
+
+function bgBuildGradPresets(){
+  const row=document.getElementById("bg-grad-presets");if(!row)return;row.innerHTML="";
+  GRAD_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset";
+    s.style.background=`linear-gradient(135deg,${p.c1},${p.c2})`;s.title=p.label;
+    s.onclick=()=>{bgGc1=p.c1;bgGc2=p.c2;document.getElementById("bg-gc1").value=p.c1;document.getElementById("bg-gc2").value=p.c2;bgRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function bgBuildRainbowPresets(){
+  const row=document.getElementById("bg-rainbow-presets");if(!row)return;row.innerHTML="";
+  RAINBOW_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===bgRainbowIdx?" on":"");
+    s.style.background=p.val;s.title=p.label;
+    s.onclick=()=>{bgRainbowIdx=i;bgRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function bgBuildMeshPresets(){
+  const row=document.getElementById("bg-mesh-presets");if(!row)return;row.innerHTML="";
+  MESH_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===bgMeshIdx?" on":"");
+    s.style.background=p.val;s.title=p.label;
+    s.onclick=()=>{bgMeshIdx=i;bgRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function bgBuildDirGrid(){
+  const grid=document.getElementById("bg-dir-grid");if(!grid)return;grid.innerHTML="";
+  DIR_OPTIONS.forEach(d=>{
+    const b=document.createElement("button");b.className="dir-btn"+(bgGradDir===d.val?" on":"");b.textContent=d.label;
+    b.onclick=()=>{bgGradDir=d.val;bgRenderAll();};grid.appendChild(b);
+  });
+}
+
+function bgBuildRainbowDirGrid(){
+  const grid=document.getElementById("bg-rainbow-dir-grid");if(!grid)return;grid.innerHTML="";
+  DIR_OPTIONS.forEach(d=>{
+    const b=document.createElement("button");b.className="dir-btn"+(bgRainbowDir===d.val?" on":"");b.textContent=d.label;
+    b.onclick=()=>{bgRainbowDir=d.val;bgRenderAll();};grid.appendChild(b);
+  });
+}
+
+let bgGridInitialized=false;
+
+function bgBuildGrid(){
+  const grid=document.getElementById("bg-grid");if(!grid)return;
+  const c=bgGetColor();
+  if(!bgGridInitialized){
+    bgGridInitialized=true;
+    BG_SHAPES.forEach((s,i)=>{
+      const card=document.createElement("div");
+      card.className="bg-card";
+      const prev=document.createElement("div");prev.className="bg-preview-area";
+      const inner=document.createElement("div");inner.style.cssText="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;";
+      const wrap=document.createElement("div");wrap.style.cssText="width:100%;transform-origin:center center;";
+      inner.appendChild(wrap);
+      prev.appendChild(inner);
+      const nm=document.createElement("div");nm.className="bg-card-name";nm.textContent=s.name;
+      card.appendChild(prev);card.appendChild(nm);
+      card.addEventListener("click",()=>{
+        bgSelectedIdx=i;
+        bgUpdateGrid();
+        bgBuildPreview();
+        bgUpdateTriSlider();
+        console.log("card clicked idx="+i, "preview el=", document.getElementById("bg-preview"));
+      });
+      grid.appendChild(card);
+    });
+    document.getElementById("bg-style-count").textContent=BG_SHAPES.length;
+  }
+  BG_SHAPES.forEach((s,i)=>{
+    const wrap=grid.children[i].querySelector(".bg-preview-area div div");
+    wrap.innerHTML=bgRenderShape(s,c,60,30);
+    wrap.style.pointerEvents="none";
+    grid.children[i].querySelector(".bg-card-name").style.pointerEvents="none";
+  });
+  bgUpdateGrid();
+}
+
+function bgUpdateGrid(){
+  const grid=document.getElementById("bg-grid");if(!grid)return;
+  Array.from(grid.children).forEach((card,i)=>{card.className="bg-card"+(i===bgSelectedIdx?" sel":"");});
+}
+
+function bgRenderShape(s,c,h,triH){
+  if(bgColorMode==="pattern"){
+    const svgStr=s.svg(c,h,300,triH);
+    return `<div style="width:100%;height:100%;">${svgStr.replace(/<svg /,'<svg style="width:100%;height:auto;" ')}</div>`;
+  }
+  return s.render(c,h,triH);
+}
+
+function bgUpdateTriSlider(){
+  const sec=document.getElementById("bg-tri-section");
+  if(sec) sec.style.display=s.hasTriH?"block":"none";
+}
+
+function bgBuildPreview(){
+  const c=bgGetColor();
+  const s=BG_SHAPES[bgSelectedIdx];
+  const el=document.getElementById("bg-preview");if(!el)return;
+  const totalH=bgHeight+(s.hasTriH?bgTriHeight:0);
+  const pad=12;
+  // ラッパーにシェイプを入れてscaleでフィット
+  el.innerHTML=`<div id="bg-preview-inner" style="width:calc(100% - ${pad*2}px);margin:${pad}px;">${bgRenderShape(s,c,totalH,bgTriHeight)}</div>`;
+  // preview boxの高さはそのまま（overflow:hiddenでclip）
+  el.style.height="";
+  el.style.minHeight="100px";
+  // scaleでフィット
+  requestAnimationFrame(()=>{
+    const inner=document.getElementById("bg-preview-inner");
+    if(!inner)return;
+    const elH=el.getBoundingClientRect().height;
+    const innerH=inner.getBoundingClientRect().height;
+    const avail=elH-pad*2;
+    if(innerH>avail&&innerH>0){
+      const scale=avail/innerH;
+      inner.style.transform=`scaleY(${scale})`;
+      inner.style.transformOrigin="top center";
+    } else {
+      inner.style.transform="";
+    }
+  });
+  const nm=document.getElementById("bg-style-name");if(nm)nm.textContent=s.name;
+}
+
+function bgBuildPatternPresets(){
+  const row=document.getElementById("bg-pattern-presets");if(!row)return;row.innerHTML="";
+  BG_PATTERNS.forEach((p,i)=>{
+    const s=document.createElement("div");
+    s.className="grad-preset"+(i===bgPatternIdx?" on":"");
+    s.style.cssText=`background-image:url("data:image/svg+xml,${encodeURIComponent(p.preview(bgPatternColor,bgPatternBgColor,bgPatternSize))}");background-size:cover;`;
+    s.title=p.name;
+    s.onclick=()=>{bgPatternIdx=i;bgRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function bgBuildPatternSwatches(){
+  ['bg-pattern-swatches','bg-pattern-bg-swatches'].forEach((id,isB)=>{
+    const row=document.getElementById(id);if(!row)return;row.innerHTML="";
+    const cur=isB?bgPatternBgColor:bgPatternColor;
+    BG_SWATCHES.concat(['#ffffff','#f5f4f0','#000000']).forEach((c,i)=>{
+      const s=document.createElement("div");s.className="swatch"+(c===cur?" on":"");s.style.background=c;
+      s.onclick=()=>{
+        if(isB){bgPatternBgColor=c;document.getElementById("bg-pattern-bg-color").value=c;}
+        else{bgPatternColor=c;document.getElementById("bg-pattern-color").value=c;}
+        bgRenderAll();
+      };
+      row.appendChild(s);
+    });
+  });
+}
+
+function bgShowPanel(mode){
+  document.getElementById("bg-panel-solid").style.display=mode==="solid"?"block":"none";
+  document.getElementById("bg-panel-grad2").style.display=mode==="grad2"?"block":"none";
+  document.getElementById("bg-panel-rainbow").style.display=mode==="rainbow"?"block":"none";
+  document.getElementById("bg-panel-mesh").style.display=mode==="mesh"?"block":"none";
+  document.getElementById("bg-panel-pattern").style.display=mode==="pattern"?"block":"none";
+}
+
+function bgRenderAll(){
+  bgBuildSwatches("bg-swatches2");
+  bgBuildGradPresets();
+  bgBuildRainbowPresets();
+  bgBuildMeshPresets();
+  bgBuildDirGrid();
+  bgBuildRainbowDirGrid();
+  bgBuildPatternPresets();
+  bgBuildPatternSwatches();
+  bgBuildGrid();
+  setTimeout(()=>{bgBuildPreview();bgUpdateTriSlider();},0);
+}
+
+// BG EVENTS
+function syncBgHeight(v){bgHeight=Math.max(40,Math.min(400,parseInt(v)||120));document.getElementById("bg-height").value=bgHeight;document.getElementById("bg-height-num").value=bgHeight;bgBuildPreview();}
+function syncBgTriHeight(v){bgTriHeight=Math.max(20,Math.min(200,parseInt(v)||60));document.getElementById("bg-tri-height").value=bgTriHeight;document.getElementById("bg-tri-height-num").value=bgTriHeight;bgBuildPreview();}
+function syncBgPatternSize(v){bgPatternSize=Math.max(4,Math.min(32,parseInt(v)||8));document.getElementById("bg-pattern-size").value=bgPatternSize;document.getElementById("bg-pattern-size-num").value=bgPatternSize;bgRenderAll();}
+
+document.getElementById("bg-height").oninput=e=>syncBgHeight(e.target.value);
+document.getElementById("bg-height-num").oninput=e=>syncBgHeight(e.target.value);
+document.getElementById("bg-tri-height").oninput=e=>syncBgTriHeight(e.target.value);
+document.getElementById("bg-tri-height-num").oninput=e=>syncBgTriHeight(e.target.value);
+document.getElementById("bg-color2").oninput=e=>{bgColor=e.target.value;bgSwatchIdx=-1;bgRenderAll();};
+document.getElementById("bg-gc1").oninput=e=>{bgGc1=e.target.value;bgRenderAll();};
+document.getElementById("bg-gc2").oninput=e=>{bgGc2=e.target.value;bgRenderAll();};
+document.getElementById("bg-pattern-color").oninput=e=>{bgPatternColor=e.target.value;bgRenderAll();};
+document.getElementById("bg-pattern-bg-color").oninput=e=>{bgPatternBgColor=e.target.value;bgRenderAll();};
+document.getElementById("bg-pattern-size").oninput=e=>syncBgPatternSize(e.target.value);
+document.getElementById("bg-pattern-size-num").oninput=e=>syncBgPatternSize(e.target.value);
+
+document.getElementById("bg-save-color").onclick=()=>{
+  const c=document.getElementById("bg-color2").value;
+  if([...BG_SWATCHES,...bgCustomSwatches].includes(c))return;
+  bgCustomSwatches.push(c);saveBgCustomSwatches();
+  bgSwatchIdx=BG_SWATCHES.length+bgCustomSwatches.length-1;bgColor=c;bgRenderAll();
+};
+
+document.querySelectorAll("[data-bgmode]").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll("[data-bgmode]").forEach(t=>t.classList.remove("on"));
+    tab.classList.add("on");bgColorMode=tab.dataset.bgmode;
+    bgShowPanel(bgColorMode);bgRenderAll();
+  };
+});
+
+document.getElementById("width-toggle").onclick=e=>{
+  const b=e.target.closest(".width-btn");if(!b)return;
+  document.querySelectorAll(".width-btn").forEach(x=>x.classList.remove("on"));b.classList.add("on");bgWidth=parseInt(b.dataset.w);
+};
+
+document.getElementById("bg-btn-svg").onclick=()=>{
+  const c=bgGetColor();
+  const s=BG_SHAPES[bgSelectedIdx];
+  let svgStr;
+
+  if(bgColorMode==="pattern"){
+    const w=bgWidth;
+    const totalH=bgHeight+(s.hasTriH?bgTriHeight:0);
+    const sz=bgPatternSize;
+    const pc=bgPatternColor;
+    const bg=bgPatternBgColor;
+    const p=BG_PATTERNS[bgPatternIdx];
+
+    // シェイプのclipPath用パスを取得
+    const shapeSvg=s.svg('#000',bgHeight,w,bgTriHeight);
+    const clipMatch=shapeSvg.match(/<(polygon|path|ellipse)[^>]*>/);
+    const clipEl=clipMatch?clipMatch[0].replace(/fill="[^"]*"/g,'').replace(/stroke="[^"]*"/g,''):'';
+
+    // パターンタイル繰り返し
+    const cols=Math.ceil(w/sz)+1;
+    const rows=Math.ceil(totalH/sz)+1;
+    let tileEls='';
+    for(let row=0;row<rows;row++){
+      for(let col=0;col<cols;col++){
+        const x=col*sz, y=row*sz;
+        if(p.name==="水玉"||p.name==="ドット（小）"){
+          const r=sz*(p.name==="水玉"?0.35:0.18);
+          tileEls+=`<circle cx="${x+sz/2}" cy="${y+sz/2}" r="${r}" fill="${pc}"/>`;
+        } else if(p.name==="ストライプ（横）"){
+          const sw=sz*0.25;
+          tileEls+=`<rect x="${x}" y="${y+sz*0.375}" width="${sz}" height="${sw}" fill="${pc}"/>`;
+        } else if(p.name==="ストライプ（斜め）"){
+          const sw=sz*0.2;
+          tileEls+=`<line x1="${x}" y1="${y+sz}" x2="${x+sz}" y2="${y}" stroke="${pc}" stroke-width="${sw}"/>`;
+          tileEls+=`<line x1="${x-sz}" y1="${y+sz}" x2="${x}" y2="${y}" stroke="${pc}" stroke-width="${sw}"/>`;
+        } else if(p.name==="チェック（格子）"){
+          const h2=sz/2;
+          tileEls+=`<rect x="${x}" y="${y}" width="${h2}" height="${h2}" fill="${pc}"/>`;
+          tileEls+=`<rect x="${x+h2}" y="${y+h2}" width="${h2}" height="${h2}" fill="${pc}"/>`;
+        } else if(p.name==="クロスハッチ"){
+          const sw=sz*0.1;
+          tileEls+=`<line x1="${x}" y1="${y+sz}" x2="${x+sz}" y2="${y}" stroke="${pc}" stroke-width="${sw}"/>`;
+          tileEls+=`<line x1="${x}" y1="${y}" x2="${x+sz}" y2="${y+sz}" stroke="${pc}" stroke-width="${sw}"/>`;
+        }
+      }
+    }
+
+    svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${totalH}" viewBox="0 0 ${w} ${totalH}">
+  <defs><clipPath id="clip">${clipEl}</clipPath></defs>
+  <g clip-path="url(#clip)">
+    <rect width="${w}" height="${totalH}" fill="${bg}"/>
+    ${tileEls}
+  </g>
+</svg>`;
+  } else if(bgColorMode==="mesh"){
+    const w=bgWidth;
+    const totalH=bgHeight+(s.hasTriH?bgTriHeight:0);
+    const grad=MESH_PRESETS[bgMeshIdx].val;
+    const colors=grad.match(/#[0-9a-fA-F]{6}/g)||['#2563eb','#a855f7','#ec4899'];
+    const c1=colors[0]||'#2563eb', c2=colors[1]||'#a855f7', c3=colors[2]||'#ec4899';
+    const shapeSvg=s.svg('#000',bgHeight,w,bgTriHeight);
+    const clipMatch=shapeSvg.match(/<(polygon|path|ellipse)[^>]*>/);
+    const clipEl=clipMatch?clipMatch[0].replace(/fill="[^"]*"/g,'').replace(/stroke="[^"]*"/g,''):'';
+    svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${totalH}" viewBox="0 0 ${w} ${totalH}">
+  <defs>
+    <radialGradient id="rg1" cx="20%" cy="50%" r="70%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="${c1}" stop-opacity="1"/><stop offset="100%" stop-color="${c1}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="rg2" cx="80%" cy="20%" r="70%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="${c2}" stop-opacity="0.9"/><stop offset="100%" stop-color="${c2}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="rg3" cx="55%" cy="80%" r="70%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="${c3}" stop-opacity="0.85"/><stop offset="100%" stop-color="${c3}" stop-opacity="0"/></radialGradient>
+    <clipPath id="clip">${clipEl}</clipPath>
+  </defs>
+  <g clip-path="url(#clip)">
+    <rect width="${w}" height="${totalH}" fill="${c1}"/>
+    <rect width="${w}" height="${totalH}" fill="url(#rg1)"/>
+    <rect width="${w}" height="${totalH}" fill="url(#rg2)"/>
+    <rect width="${w}" height="${totalH}" fill="url(#rg3)"/>
+  </g>
+</svg>`;
+  } else {
+    svgStr=s.svg(c,bgHeight,bgWidth,bgTriHeight);
+  }
+
+  const blob=new Blob([svgStr],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download=`bg-${s.name}.svg`;a.click();URL.revokeObjectURL(url);
+};
+
+document.getElementById("bg-btn-css").onclick=()=>{
+  const c=bgGetColor();
+  const s=BG_SHAPES[bgSelectedIdx];
+  copyText(`.bg-shape {\n  ${s.css(c,bgHeight,bgTriHeight).split('\n').join('\n  ')}\n}`,"bg-btn-css","CSSをコピー");
+};
+</script>
+</body>
+</html>
