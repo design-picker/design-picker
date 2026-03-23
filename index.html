@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta property="og:title" content="デザインピッカー">
-<meta property="og:description" content="Web制作で使える見出し・背景デザインを選べるツール（β版）">
-<meta property="og:image" content="https://raw.githubusercontent.com/design-picker/design-picker/main/ogp.png">
-<meta property="og:type" content="website">
-<meta name="twitter:card" content="summary_large_image">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>デザインピッカー(β版)</title>
+<title>デザインピッカー | Web制作のデザインパーツをすぐ見つける</title>
+<meta name="description" content="見出し・背景・シェイプなど、Web制作でよく使うデザインパーツをビジュアルで選んでSVG/CSSで書き出せるツールです。">
+<meta property="og:title" content="デザインピッカー | Web制作のデザインパーツをすぐ見つける">
+<meta property="og:description" content="見出し・背景・シェイプなど、Web制作でよく使うデザインパーツをビジュアルで選んでSVG/CSSで書き出せるツールです。">
+<meta property="og:url" content="https://design-picker-seven.vercel.app">
+<meta property="og:type" content="website">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -152,6 +152,7 @@ input[type="color"]{width:24px;height:24px;border:1px solid var(--border);border
     <div class="page-nav">
       <button class="page-tab on" data-page="midashi">見出しピッカー</button>
       <button class="page-tab" data-page="bg">背景ピッカー</button>
+      <button class="page-tab" data-page="shape">シェイプピッカー</button>
     </div>
   </div>
   <div class="mid-header" id="midashi-toolbar" style="padding:0 1.25rem;height:44px;width:100%;gap:.75rem;">
@@ -425,6 +426,97 @@ input[type="color"]{width:24px;height:24px;border:1px solid var(--border);border
   </div>
 </div>
 
+<!-- シェイプピッカーページ -->
+<div id="shape-page" style="display:none;">
+  <div class="bg-layout">
+    <div class="bg-main">
+      <div class="section-label">シェイプを選ぶ — <span id="shape-style-count"></span>種類</div>
+      <div class="bg-grid" id="shape-grid"></div>
+    </div>
+    <div class="bg-sidebar-wrap">
+    <div class="sidebar">
+      <div>
+        <div style="margin-bottom:6px;"><div class="section-label" style="margin-bottom:0;">プレビュー</div></div>
+        <div class="preview-box" id="shape-preview" style="padding:12px;overflow:hidden;min-height:120px;display:flex;align-items:center;justify-content:center;"></div>
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-top:8px;" id="shape-style-name"></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label" style="margin-bottom:6px;">幅</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" min="40" max="400" step="4" value="200" id="shape-w" style="flex:1;accent-color:var(--accent);"/>
+          <input type="number" min="40" max="400" value="200" id="shape-w-num" style="width:52px;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:3px 5px;text-align:right;background:var(--bg);color:var(--text);"/>
+          <span style="font-size:11px;color:var(--muted);">px</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label" style="margin-bottom:6px;">高さ</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" min="40" max="400" step="4" value="160" id="shape-h" style="flex:1;accent-color:var(--accent);"/>
+          <input type="number" min="40" max="400" value="160" id="shape-h-num" style="width:52px;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:3px 5px;text-align:right;background:var(--bg);color:var(--text);"/>
+          <span style="font-size:11px;color:var(--muted);">px</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label" style="margin-bottom:6px;">歪み具合</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" min="0" max="100" step="1" value="50" id="shape-distort" style="flex:1;accent-color:var(--accent);"/>
+          <span style="font-size:11px;font-weight:700;min-width:28px;" id="shape-distort-val">50</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label" style="margin-bottom:6px;">カラーモード</div>
+        <div class="mode-tabs" style="flex-wrap:wrap;">
+          <button class="mode-tab on" data-shapemode="solid">単色</button>
+          <button class="mode-tab" data-shapemode="grad2">2色グラデ</button>
+          <button class="mode-tab" data-shapemode="rainbow">虹</button>
+          <button class="mode-tab" data-shapemode="mesh">メッシュ</button>
+        </div>
+      </div>
+      <div id="shape-panel-solid">
+        <div class="section-label" style="margin-bottom:6px;margin-top:8px;">カラー</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <div id="shape-swatches" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+          <input type="color" id="shape-color" value="#2563eb"/>
+        </div>
+      </div>
+      <div id="shape-panel-grad2" style="display:none;">
+        <div class="grad-panel">
+          <div>
+            <div class="section-label" style="margin-bottom:6px;margin-top:8px;">プリセット</div>
+            <div class="grad-presets" id="shape-grad-presets"></div>
+          </div>
+          <div class="color-pair" style="margin-top:8px;">
+            <label>色1</label><input type="color" id="shape-gc1" value="#2563eb"/>
+            <label style="margin-left:4px;">色2</label><input type="color" id="shape-gc2" value="#a855f7"/>
+          </div>
+          <div>
+            <div class="section-label" style="margin-bottom:6px;margin-top:8px;">方向</div>
+            <div class="dir-grid" id="shape-dir-grid"></div>
+          </div>
+        </div>
+      </div>
+      <div id="shape-panel-rainbow" style="display:none;">
+        <div class="grad-panel">
+          <div class="section-label" style="margin-bottom:6px;margin-top:8px;">パターン</div>
+          <div class="grad-presets" id="shape-rainbow-presets"></div>
+          <div>
+            <div class="section-label" style="margin-bottom:6px;margin-top:8px;">方向</div>
+            <div class="dir-grid" id="shape-rainbow-dir-grid"></div>
+          </div>
+        </div>
+      </div>
+      <div id="shape-panel-mesh" style="display:none;">
+        <div class="section-label" style="margin-bottom:6px;margin-top:8px;">にじみ / メッシュ</div>
+        <div class="grad-presets" id="shape-mesh-presets"></div>
+      </div>
+      <div class="actions">
+        <button class="action-btn primary" id="shape-btn-svg">SVGをダウンロード</button>
+        <button class="action-btn" id="shape-btn-png">PNGをダウンロード</button>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
 <script>
 // ── STATE ──────────────────────────────────────────────
 const SWATCHES = ["#2563eb","#dc2626","#16a34a","#9333ea","#ea580c","#0891b2","#be185d","#ca8a04","#18170f","#ffe600","#f59e0b"];
@@ -996,8 +1088,12 @@ document.querySelectorAll(".page-tab").forEach(tab=>{
     document.getElementById("bg-toolbar").classList.toggle("hide",currentPage!=="bg");
     document.querySelector(".layout").style.display=currentPage==="midashi"?"grid":"none";
     document.getElementById("bg-page").style.display=currentPage==="bg"?"block":"none";
+    document.getElementById("shape-page").style.display=currentPage==="shape"?"block":"none";
     if(currentPage==="bg"){
       bgRenderAll();
+    }
+    if(currentPage==="shape"){
+      shapeRenderAll();
     }
   };
 });
@@ -1505,6 +1601,256 @@ document.getElementById("bg-btn-css").onclick=()=>{
   const s=BG_SHAPES[bgSelectedIdx];
   copyText(`.bg-shape {\n  ${s.css(c,bgHeight,bgTriHeight).split('\n').join('\n  ')}\n}`,"bg-btn-css","CSSをコピー");
 };
+
+// ── SHAPE PICKER ───────────────────────────────────────
+let shapeSelectedIdx=0, shapeW=200, shapeH=160, shapeDistort=50;
+let shapeColorMode="solid", shapeColor="#2563eb";
+let shapeGc1="#2563eb", shapeGc2="#a855f7", shapeGradDir="to right";
+let shapeRainbowIdx=0, shapeRainbowDir="to right", shapeMeshIdx=0;
+let shapeGridInitialized=false;
+
+// ブロブパス生成（cubic bezier）
+function blobPath(w,h,distort,seed){
+  const cx=w/2, cy=h/2;
+  const rx=w/2, ry=h/2;
+  const n=8; // 制御点数
+  const d=distort/100;
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const angle=(i/n)*Math.PI*2;
+    const noise=(Math.sin(seed*7.3+i*2.1)*0.5+Math.cos(seed*3.7+i*1.4)*0.5)*d;
+    const r=1+noise*0.45;
+    pts.push({
+      x:cx+Math.cos(angle)*rx*r,
+      y:cy+Math.sin(angle)*ry*r
+    });
+  }
+  // cubic bezierでなめらかに繋ぐ
+  let path=`M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for(let i=0;i<n;i++){
+    const cur=pts[i], next=pts[(i+1)%n];
+    const prev=pts[(i-1+n)%n];
+    const cp1x=(cur.x+(next.x-prev.x)*0.25).toFixed(1);
+    const cp1y=(cur.y+(next.y-prev.y)*0.25).toFixed(1);
+    const nextnext=pts[(i+2)%n];
+    const cp2x=(next.x-(nextnext.x-cur.x)*0.25).toFixed(1);
+    const cp2y=(next.y-(nextnext.y-cur.y)*0.25).toFixed(1);
+    path+=` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x.toFixed(1)},${next.y.toFixed(1)}`;
+  }
+  return path+' Z';
+}
+
+// シェイプ定義（seed値でバリエーション）
+const SHAPES=[
+  {name:"ブロブ A",  seed:1.0},
+  {name:"ブロブ B",  seed:2.3},
+  {name:"ブロブ C",  seed:3.7},
+  {name:"ブロブ D",  seed:5.1},
+  {name:"ブロブ E",  seed:6.4},
+  {name:"ブロブ F",  seed:7.8},
+  {name:"ブロブ G",  seed:9.2},
+  {name:"ブロブ H",  seed:10.5},
+  {name:"ブロブ I",  seed:11.9},
+  {name:"ブロブ J",  seed:13.2},
+  {name:"ブロブ K",  seed:14.6},
+  {name:"ブロブ L",  seed:15.9},
+];
+
+function shapeGetFill(id){
+  if(shapeColorMode==="solid") return {fill:shapeColor, defs:''};
+  if(shapeColorMode==="grad2"){
+    const defs=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${shapeGc1}"/><stop offset="100%" stop-color="${shapeGc2}"/></linearGradient></defs>`;
+    return {fill:`url(#${id})`, defs};
+  }
+  if(shapeColorMode==="rainbow"){
+    const base=RAINBOW_PRESETS[shapeRainbowIdx].val;
+    const colors=base.match(/#[0-9a-fA-F]{6}/g)||['#ff0080','#7b2ff7'];
+    let stops=colors.map((c,i)=>`<stop offset="${Math.round(i/(colors.length-1)*100)}%" stop-color="${c}"/>`).join('');
+    const defs=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">${stops}</linearGradient></defs>`;
+    return {fill:`url(#${id})`, defs};
+  }
+  if(shapeColorMode==="mesh"){
+    const grad=MESH_PRESETS[shapeMeshIdx].val;
+    const colors=grad.match(/#[0-9a-fA-F]{6}/g)||['#2563eb','#a855f7','#ec4899'];
+    const c1=colors[0], c2=colors[1]||c1, c3=colors[2]||c2;
+    const defs=`<defs>
+      <radialGradient id="${id}1" cx="25%" cy="40%" r="70%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c1}" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${id}2" cx="75%" cy="30%" r="70%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="${c2}" stop-opacity="0.9"/><stop offset="100%" stop-color="${c2}" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${id}3" cx="50%" cy="75%" r="70%" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="${c3}" stop-opacity="0.85"/><stop offset="100%" stop-color="${c3}" stop-opacity="0"/></radialGradient>
+    </defs>`;
+    return {fill:c1, defs, mesh:true, c2, c3, id};
+  }
+  return {fill:shapeColor, defs:''};
+}
+
+function shapeSvgStr(s,w,h,distort){
+  const path=blobPath(w,h,distort,s.seed);
+  const f=shapeGetFill('sg');
+  let inner=`<path d="${path}" fill="${f.fill}"/>`;
+  if(f.mesh){
+    inner=`<path d="${path}" fill="${f.fill}"/>
+    <path d="${path}" fill="url(#sg1)"/>
+    <path d="${path}" fill="url(#sg2)"/>
+    <path d="${path}" fill="url(#sg3)"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${f.defs}${inner}</svg>`;
+}
+
+function shapeBuildGrid(){
+  const grid=document.getElementById("shape-grid");if(!grid)return;
+  if(!shapeGridInitialized){
+    shapeGridInitialized=true;
+    SHAPES.forEach((s,i)=>{
+      const card=document.createElement("div");card.className="bg-card";
+      const prev=document.createElement("div");prev.className="bg-preview-area";
+      prev.style.cssText="height:90px;display:flex;align-items:center;justify-content:center;padding:8px;";
+      const nm=document.createElement("div");nm.className="bg-card-name";nm.textContent=s.name;
+      card.appendChild(prev);card.appendChild(nm);
+      card.addEventListener("click",()=>{shapeSelectedIdx=i;shapeUpdateGrid();shapeBuildPreview();});
+      grid.appendChild(card);
+    });
+    document.getElementById("shape-style-count").textContent=SHAPES.length;
+  }
+  SHAPES.forEach((s,i)=>{
+    const prev=grid.children[i].querySelector(".bg-preview-area");
+    const svg=shapeSvgStr(s,80,64,shapeDistort);
+    prev.innerHTML=`<div style="pointer-events:none;">${svg}</div>`;
+  });
+  shapeUpdateGrid();
+}
+
+function shapeUpdateGrid(){
+  const grid=document.getElementById("shape-grid");if(!grid)return;
+  Array.from(grid.children).forEach((c,i)=>{c.className="bg-card"+(i===shapeSelectedIdx?" sel":"");});
+}
+
+function shapeBuildPreview(){
+  const el=document.getElementById("shape-preview");if(!el)return;
+  const s=SHAPES[shapeSelectedIdx];
+  el.innerHTML=shapeSvgStr(s,shapeW,shapeH,shapeDistort);
+  document.getElementById("shape-style-name").textContent=s.name;
+}
+
+function shapeBuildSwatches(){
+  const row=document.getElementById("shape-swatches");if(!row)return;row.innerHTML="";
+  SWATCHES.forEach((c,i)=>{
+    const s=document.createElement("div");s.className="swatch"+(c===shapeColor?" on":"");s.style.background=c;
+    s.onclick=()=>{shapeColor=c;document.getElementById("shape-color").value=c;shapeRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function shapeBuildGradPresets(){
+  const row=document.getElementById("shape-grad-presets");if(!row)return;row.innerHTML="";
+  GRAD_PRESETS.forEach(p=>{
+    const s=document.createElement("div");s.className="grad-preset";
+    s.style.background=`linear-gradient(135deg,${p.c1},${p.c2})`;s.title=p.label;
+    s.onclick=()=>{shapeGc1=p.c1;shapeGc2=p.c2;document.getElementById("shape-gc1").value=p.c1;document.getElementById("shape-gc2").value=p.c2;shapeRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function shapeBuildRainbowPresets(){
+  const row=document.getElementById("shape-rainbow-presets");if(!row)return;row.innerHTML="";
+  RAINBOW_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===shapeRainbowIdx?" on":"");
+    s.style.background=p.val;s.title=p.label;
+    s.onclick=()=>{shapeRainbowIdx=i;shapeRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function shapeBuildMeshPresets(){
+  const row=document.getElementById("shape-mesh-presets");if(!row)return;row.innerHTML="";
+  MESH_PRESETS.forEach((p,i)=>{
+    const s=document.createElement("div");s.className="grad-preset"+(i===shapeMeshIdx?" on":"");
+    s.style.background=p.val;s.title=p.label;
+    s.onclick=()=>{shapeMeshIdx=i;shapeRenderAll();};
+    row.appendChild(s);
+  });
+}
+
+function shapeBuildDirGrid(){
+  const grid=document.getElementById("shape-dir-grid");if(!grid)return;grid.innerHTML="";
+  DIR_OPTIONS.forEach(d=>{
+    const b=document.createElement("button");b.className="dir-btn"+(shapeGradDir===d.val?" on":"");b.textContent=d.label;
+    b.onclick=()=>{shapeGradDir=d.val;shapeRenderAll();};grid.appendChild(b);
+  });
+}
+
+function shapeBuildRainbowDirGrid(){
+  const grid=document.getElementById("shape-rainbow-dir-grid");if(!grid)return;grid.innerHTML="";
+  DIR_OPTIONS.forEach(d=>{
+    const b=document.createElement("button");b.className="dir-btn"+(shapeRainbowDir===d.val?" on":"");b.textContent=d.label;
+    b.onclick=()=>{shapeRainbowDir=d.val;shapeRenderAll();};grid.appendChild(b);
+  });
+}
+
+function shapeShowPanel(mode){
+  ["solid","grad2","rainbow","mesh"].forEach(m=>{
+    document.getElementById(`shape-panel-${m}`).style.display=m===mode?"block":"none";
+  });
+}
+
+function shapeRenderAll(){
+  shapeBuildSwatches();shapeBuildGradPresets();shapeBuildRainbowPresets();
+  shapeBuildMeshPresets();shapeBuildDirGrid();shapeBuildRainbowDirGrid();
+  shapeBuildGrid();shapeBuildPreview();
+}
+
+// SHAPE EVENTS
+function syncShapeW(v){shapeW=Math.max(40,Math.min(400,parseInt(v)||200));document.getElementById("shape-w").value=shapeW;document.getElementById("shape-w-num").value=shapeW;shapeBuildPreview();}
+function syncShapeH(v){shapeH=Math.max(40,Math.min(400,parseInt(v)||160));document.getElementById("shape-h").value=shapeH;document.getElementById("shape-h-num").value=shapeH;shapeBuildPreview();}
+
+document.getElementById("shape-w").oninput=e=>syncShapeW(e.target.value);
+document.getElementById("shape-w-num").oninput=e=>syncShapeW(e.target.value);
+document.getElementById("shape-h").oninput=e=>syncShapeH(e.target.value);
+document.getElementById("shape-h-num").oninput=e=>syncShapeH(e.target.value);
+document.getElementById("shape-distort").oninput=e=>{
+  shapeDistort=parseInt(e.target.value);
+  document.getElementById("shape-distort-val").textContent=shapeDistort;
+  shapeBuildGrid();shapeBuildPreview();
+};
+document.getElementById("shape-color").oninput=e=>{shapeColor=e.target.value;shapeRenderAll();};
+document.getElementById("shape-gc1").oninput=e=>{shapeGc1=e.target.value;shapeRenderAll();};
+document.getElementById("shape-gc2").oninput=e=>{shapeGc2=e.target.value;shapeRenderAll();};
+
+document.querySelectorAll("[data-shapemode]").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll("[data-shapemode]").forEach(t=>t.classList.remove("on"));
+    tab.classList.add("on");shapeColorMode=tab.dataset.shapemode;
+    shapeShowPanel(shapeColorMode);shapeRenderAll();
+  };
+});
+
+document.getElementById("shape-btn-svg").onclick=()=>{
+  const s=SHAPES[shapeSelectedIdx];
+  const svgStr=shapeSvgStr(s,shapeW,shapeH,shapeDistort);
+  const blob=new Blob([svgStr],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download=`shape-${s.name}.svg`;a.click();URL.revokeObjectURL(url);
+};
+
+document.getElementById("shape-btn-png").onclick=()=>{
+  const s=SHAPES[shapeSelectedIdx];
+  const svgStr=shapeSvgStr(s,shapeW,shapeH,shapeDistort);
+  const canvas=document.createElement("canvas");
+  canvas.width=shapeW*2;canvas.height=shapeH*2;
+  const ctx=canvas.getContext("2d");
+  const img=new Image();
+  const blob=new Blob([svgStr],{type:"image/svg+xml"});
+  const url=URL.createObjectURL(blob);
+  img.onload=()=>{
+    ctx.scale(2,2);ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    const a=document.createElement("a");
+    a.href=canvas.toDataURL("image/png");
+    a.download=`shape-${s.name}.png`;a.click();
+  };
+  img.src=url;
+};
+
+// ページ切り替えにシェイプピッカーを追加
 </script>
 </body>
 </html>
